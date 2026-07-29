@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home Command Center</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #09090b; /* zinc-950 */
+            color: #e4e4e7; /* zinc-200 */
+            color-scheme: dark;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Dark Mode Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #09090b; }
+        ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="antialiased selection:bg-red-900 selection:text-white">
+
+    <div id="auth-view" class="hidden flex h-screen items-center justify-center p-4 bg-black">
+        <form id="auth-form" class="w-full max-w-sm bg-zinc-900 border border-zinc-800 p-8 rounded-3xl shadow-[0_0_40px_rgba(153,27,27,0.1)] flex flex-col items-center fade-in">
+            <div class="bg-black border border-zinc-800 p-4 rounded-full mb-4 text-red-800 text-3xl shadow-inner">🗝️</div>
+            <h2 class="text-2xl font-extrabold mb-2 text-zinc-100">Command Center</h2>
+            <p class="text-zinc-500 mb-6 text-center text-sm font-medium">Enter the passcode to access.</p>
+            
+            <input type="password" id="pin-input" placeholder="****" class="w-full p-4 mb-2 bg-black border border-zinc-800 rounded-2xl text-center text-3xl tracking-[0.5em] font-bold outline-none focus:border-red-900 focus:bg-zinc-950 transition-all text-zinc-100" maxlength="4">
+            <p id="auth-error" class="text-red-500 text-sm mb-4 font-semibold hidden">Incorrect Passcode.</p>
+            
+            <button type="submit" class="w-full bg-red-950 border border-red-900 text-red-100 py-4 rounded-2xl font-bold hover:bg-red-900 transition-colors shadow-lg shadow-red-900/20 text-lg">Unlock</button>
+        </form>
+    </div>
+
+    <div id="app-view" class="hidden min-h-screen flex flex-col">
+        <header class="bg-zinc-950/90 backdrop-blur-md border-b border-zinc-800 p-4 flex justify-between items-center sticky top-0 z-20 shadow-md">
+            <h1 class="font-extrabold text-xl tracking-tight flex items-center gap-2 text-zinc-100">
+                <div class="w-2.5 h-6 bg-red-900 rounded-full shadow-[0_0_10px_rgba(153,27,27,0.8)]"></div>
+                Home Base
+            </h1>
+            <div class="flex items-center gap-3">
+                <span id="sync-status" class="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-zinc-500 bg-zinc-900 border border-zinc-800 px-2 py-1 rounded-md">
+                    <span class="w-2 h-2 rounded-full bg-zinc-600"></span> Local Mode
+                </span>
+                <button onclick="lockApp()" class="text-sm font-bold bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 px-4 py-2 rounded-xl transition-colors">Lock</button>
+            </div>
+        </header>
+
+        <nav class="flex bg-zinc-950 border-b border-zinc-800 overflow-x-auto no-scrollbar sticky top-[65px] z-10 shadow-md shadow-black/50">
+            <button onclick="switchTab('groceries')" id="tab-groceries" class="tab-btn flex-1 min-w-[90px] py-3.5 flex flex-col items-center gap-1 border-b-2 border-red-900 text-red-600 transition-colors bg-zinc-900/50">
+                <span class="text-lg grayscale opacity-80">🥩</span><span class="text-[11px] font-bold uppercase tracking-wide">Groceries</span>
+            </button>
+            <button onclick="switchTab('todos')" id="tab-todos" class="tab-btn flex-1 min-w-[90px] py-3.5 flex flex-col items-center gap-1 border-b-2 border-transparent text-zinc-600 hover:text-zinc-400 hover:bg-zinc-900/30 transition-colors">
+                <span class="text-lg grayscale opacity-80">📜</span><span class="text-[11px] font-bold uppercase tracking-wide">Tasks</span>
+            </button>
+            <button onclick="switchTab('meals')" id="tab-meals" class="tab-btn flex-1 min-w-[90px] py-3.5 flex flex-col items-center gap-1 border-b-2 border-transparent text-zinc-600 hover:text-zinc-400 hover:bg-zinc-900/30 transition-colors">
+                <span class="text-lg grayscale opacity-80">🍷</span><span class="text-[11px] font-bold uppercase tracking-wide">Meals</span>
+            </button>
+            <button onclick="switchTab('chores')" id="tab-chores" class="tab-btn flex-1 min-w-[90px] py-3.5 flex flex-col items-center gap-1 border-b-2 border-transparent text-zinc-600 hover:text-zinc-400 hover:bg-zinc-900/30 transition-colors">
+                <span class="text-lg grayscale opacity-80">🐈‍⬛</span><span class="text-[11px] font-bold uppercase tracking-wide">Chores</span>
+            </button>
+        </nav>
+
+        <main class="p-4 flex-1 max-w-2xl mx-auto w-full pb-24">
+            
+            <div id="view-groceries" class="tab-content space-y-6">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-extrabold text-zinc-100">Inventory & List</h2>
+                    <button onclick="toggleGroceryForm()" class="bg-red-950 border border-red-900 text-red-100 px-4 py-2.5 rounded-xl text-sm font-bold shadow-md shadow-red-900/20 hover:bg-red-900 transition-colors flex items-center gap-2">
+                        <span id="g-form-icon" class="text-red-500">➕</span> <span id="g-form-text">Add Item</span>
+                    </button>
+                </div>
+
+                <form id="grocery-form" class="hidden bg-zinc-900 p-5 rounded-3xl shadow-xl border border-zinc-800 fade-in">
+                    <h3 id="g-form-title" class="font-bold text-zinc-200 mb-4">New Grocery Item</h3>
+                    <input type="hidden" id="g-id">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Item Name *</label>
+                            <input type="text" id="g-name" required class="w-full p-3 bg-black border border-zinc-800 rounded-xl focus:border-red-900 outline-none font-medium text-zinc-200" placeholder="e.g. Oat Milk">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Category</label>
+                                <select id="g-cat-select" onchange="checkCustomCategory()" class="w-full p-3 bg-black border border-zinc-800 rounded-xl outline-none font-medium text-zinc-200">
+                                    <option>Fruits</option><option>Meats</option><option>Breads & Grains</option>
+                                    <option>Vegetables</option><option>Dips, Sauces & Spreads</option><option>Beverages</option>
+                                    <option>Snacks</option><option>Packaged Meals</option><option value="custom">Other (Custom)</option>
+                                </select>
+                                <input type="text" id="g-cat-custom" class="hidden mt-2 w-full p-3 bg-black border border-zinc-800 rounded-xl focus:border-red-900 outline-none font-medium text-zinc-200" placeholder="Enter custom category">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Specific Type</label>
+                                <input type="text" id="g-type" class="w-full p-3 bg-black border border-zinc-800 rounded-xl focus:border-red-900 outline-none font-medium text-zinc-200" placeholder="e.g. Vanilla, Whole Wheat">
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Preferred Store</label>
+                                <input type="text" id="g-store" class="w-full p-3 bg-black border border-zinc-800 rounded-xl focus:border-red-900 outline-none font-medium text-zinc-200" placeholder="e.g. Target">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Notes</label>
+                                <input type="text" id="g-notes" class="w-full p-3 bg-black border border-zinc-800 rounded-xl focus:border-red-900 outline-none font-medium text-zinc-200" placeholder="Brand, specific needs...">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4 bg-zinc-950 p-4 rounded-2xl border border-zinc-800">
+                            <div>
+                                <label class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Packs in Stock</label>
+                                <input type="number" id="g-stock" min="0" value="0" class="w-full p-3 bg-black border border-zinc-700 rounded-xl outline-none font-medium text-center text-zinc-200 focus:border-red-900">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Pack Size (Buy Qty)</label>
+                                <input type="text" id="g-buy" value="1" class="w-full p-3 bg-black border border-zinc-700 rounded-xl outline-none font-medium text-center text-zinc-200 focus:border-red-900" placeholder="e.g. 1 pack of 8">
+                            </div>
+                        </div>
+                        
+                        <label class="flex items-center gap-3 p-3 bg-black rounded-xl border border-zinc-800 cursor-pointer hover:border-red-900 transition-colors">
+                            <input type="checkbox" id="g-need" class="w-5 h-5 rounded accent-red-900 bg-zinc-900 border-zinc-700">
+                            <span class="font-bold text-zinc-300">Add to Shopping List Now</span>
+                        </label>
+                        <button type="submit" class="w-full bg-zinc-800 text-zinc-100 py-3.5 rounded-xl font-bold hover:bg-zinc-700 hover:text-white transition-colors border border-zinc-700">Save Item</button>
+                    </div>
+                </form>
+
+                <div>
+                    <h3 class="font-extrabold text-zinc-200 flex items-center gap-2 mb-3 tracking-wide"><span class="w-3 h-3 rounded-full bg-red-900 shadow-[0_0_8px_rgba(153,27,27,0.8)]"></span> Shopping List</h3>
+                    <div id="list-needed" class="space-y-3"></div>
+                </div>
+                <div class="pt-4 border-t border-zinc-800 mt-6">
+                    <h3 class="font-extrabold text-zinc-200 flex items-center gap-2 mb-3 tracking-wide"><span class="w-3 h-3 rounded-full bg-zinc-600"></span> Inventory</h3>
+                    <div id="list-stocked" class="space-y-3"></div>
+                </div>
+            </div>
+
+            <div id="view-todos" class="tab-content hidden space-y-6">
+                <h2 class="text-xl font-extrabold text-zinc-100">Tasks & Projects</h2>
+                <form id="todo-form" class="flex gap-2">
+                    <input type="text" id="todo-input" required placeholder="Add a new task..." class="flex-1 p-4 rounded-2xl bg-zinc-900 border border-zinc-800 outline-none focus:border-red-900 font-medium shadow-sm text-zinc-200 placeholder:text-zinc-600">
+                    <button type="submit" class="bg-red-950 border border-red-900 text-red-500 px-5 rounded-2xl shadow-md hover:bg-red-900 hover:text-red-100 font-bold text-lg transition-colors">➕</button>
+                </form>
+                <div>
+                    <h3 class="font-bold text-zinc-500 text-sm mb-3 uppercase tracking-wider">Active Tasks</h3>
+                    <div id="todo-list" class="space-y-3"></div>
+                </div>
+                <div class="pt-6 border-t border-zinc-800 mt-6">
+                    <h3 class="font-bold text-zinc-500 text-sm mb-3 uppercase tracking-wider flex justify-between items-center">
+                        Archived Tasks
+                        <button type="button" onclick="toggleArchive()" id="archive-toggle" class="text-xs text-zinc-400 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 px-3 py-1.5 rounded-lg transition-colors">Show Archive</button>
+                    </h3>
+                    <div id="todo-archive" class="space-y-3 hidden"></div>
+                </div>
+            </div>
+
+            <div id="view-meals" class="tab-content hidden space-y-6">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-extrabold text-zinc-100">Meal Prep Schedule</h2>
+                    <button onclick="toggleMealForm()" class="bg-zinc-900 border border-zinc-700 text-zinc-300 px-4 py-2.5 rounded-xl text-sm font-bold shadow-md hover:bg-zinc-800 transition-colors flex items-center gap-2">
+                        <span id="m-form-icon">➕</span> <span id="m-form-text">Plan Meal</span>
+                    </button>
+                </div>
+
+                <form id="meal-form" class="hidden bg-zinc-900 p-5 rounded-3xl shadow-xl border border-zinc-800 fade-in">
+                    <h3 class="font-bold text-zinc-200 mb-4">Schedule Meal Prep</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Meal Name *</label>
+                            <input type="text" id="m-name" required class="w-full p-3 bg-black border border-zinc-800 rounded-xl outline-none focus:border-red-900 font-medium text-zinc-200" placeholder="e.g. Chicken Quinoa Bowls">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Start Date (Sunday)*</label>
+                                <input type="date" id="m-date" required class="w-full p-3 bg-black border border-zinc-800 rounded-xl outline-none focus:border-red-900 font-medium text-zinc-200 color-scheme-dark">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Repeats Every (Weeks)</label>
+                                <input type="number" id="m-repeat" min="0" max="99" placeholder="e.g. 2" class="w-full p-3 bg-black border border-zinc-800 rounded-xl outline-none focus:border-red-900 font-medium text-zinc-200">
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full bg-red-950 border border-red-900 text-red-100 py-3.5 rounded-xl font-bold hover:bg-red-900 transition-colors">Save Schedule</button>
+                    </div>
+                </form>
+
+                <div id="meals-list" class="space-y-8"></div>
+            </div>
+
+            <div id="view-chores" class="tab-content hidden space-y-6">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-extrabold text-zinc-100">Household Chores</h2>
+                    <button onclick="toggleChoreSettings()" class="text-zinc-400 hover:text-zinc-200 bg-zinc-900 border border-zinc-800 p-2 rounded-lg transition-colors">⚙️ Settings</button>
+                </div>
+                
+                <div id="chore-settings" class="hidden bg-zinc-900 p-5 rounded-2xl shadow-xl border border-zinc-800 border-t-4 border-t-purple-900 fade-in">
+                    <h3 class="font-bold text-zinc-200 mb-4 text-sm tracking-wide uppercase">Litter Schedule Frequencies</h3>
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center gap-4">
+                            <label class="text-sm font-bold text-zinc-400 flex-1">Fully change every X weeks:</label>
+                            <input type="number" id="set-change-weeks" min="1" class="w-20 p-3 bg-black border border-zinc-700 rounded-xl text-center font-bold text-zinc-200">
+                        </div>
+                        <div class="flex justify-between items-center gap-4">
+                            <label class="text-sm font-bold text-zinc-400 flex-1">Buy new litter every X weeks:</label>
+                            <input type="number" id="set-buy-weeks" min="1" class="w-20 p-3 bg-black border border-zinc-700 rounded-xl text-center font-bold text-zinc-200">
+                        </div>
+                        <button onclick="saveChoreSettings()" class="w-full bg-purple-950 border border-purple-900 text-purple-200 py-3 rounded-xl font-bold mt-2 hover:bg-purple-900 transition-colors">Save Schedule</button>
+                    </div>
+                </div>
+
+                <div class="bg-zinc-900 p-6 rounded-3xl shadow-xl border border-zinc-800">
+                    <div class="flex items-center gap-4 mb-6 border-b border-zinc-800 pb-5">
+                        <div class="bg-black border border-zinc-800 p-4 rounded-2xl text-2xl shadow-inner">🐈‍⬛</div>
+                        <div>
+                            <h3 class="font-extrabold text-lg text-zinc-100">Cat Litter Calendar</h3>
+                            <p class="text-xs text-zinc-500 font-medium mt-1">Tap to record task completion.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="flex gap-3">
+                            <button onclick="updateLitter('changed')" class="flex-1 bg-black border border-zinc-800 p-4 rounded-2xl flex flex-col items-center justify-center hover:border-purple-900 hover:bg-zinc-950 transition-colors group">
+                                <span class="font-extrabold text-zinc-300 text-sm group-hover:text-purple-400 transition-colors">Fully Changed</span>
+                                <span id="lit-change-last" class="text-[10px] font-bold text-zinc-600 mt-1 uppercase">Never</span>
+                            </button>
+                            <div class="flex-1 bg-zinc-900 border border-zinc-800 p-4 rounded-2xl flex flex-col justify-center text-center">
+                                <span class="text-[10px] font-bold text-zinc-500 uppercase tracking-wide mb-1">Next Due</span>
+                                <span id="lit-change-due" class="font-extrabold text-purple-500 text-sm drop-shadow-[0_0_5px_rgba(168,85,247,0.3)]">ASAP</span>
+                            </div>
+                        </div>
+                        <div class="flex gap-3">
+                            <button onclick="updateLitter('bought')" class="flex-1 bg-black border border-zinc-800 p-4 rounded-2xl flex flex-col items-center justify-center hover:border-purple-900 hover:bg-zinc-950 transition-colors group">
+                                <span class="font-extrabold text-zinc-300 text-sm group-hover:text-purple-400 transition-colors">Bought New Litter</span>
+                                <span id="lit-buy-last" class="text-[10px] font-bold text-zinc-600 mt-1 uppercase">Never</span>
+                            </button>
+                            <div class="flex-1 bg-zinc-900 border border-zinc-800 p-4 rounded-2xl flex flex-col justify-center text-center">
+                                <span class="text-[10px] font-bold text-zinc-500 uppercase tracking-wide mb-1">Next Due</span>
+                                <span id="lit-buy-due" class="font-extrabold text-purple-500 text-sm drop-shadow-[0_0_5px_rgba(168,85,247,0.3)]">ASAP</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // ==========================================
+        // 🚨 FIREBASE CONFIGURATION (LIVE SYNC) 🚨
+        // ==========================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyCFm_LFV2pur5mKf4RfxFdyvRumo-xMuL0",
+            authDomain: "home-command-center-4a250.firebaseapp.com",
+            projectId: "home-command-center-4a250",
+            storageBucket: "home-command-center-4a250.firebasestorage.app",
+            messagingSenderId: "650433556310",
+            appId: "1:650433556310:web:20e65ae7e39f98a7ec30f7"
+        };
+
+        let db;
+        let isLive = false;
+        const STORAGE_KEY = 'home-cmd-goth';
+        
+        // Passcode: 6969
+        const TARGET_HASH = "36393639"; 
+
+        let state = {
+            groceries: [],
+            todos: [],
+            meals: [],
+            chores: { changeWeeks: 2, buyWeeks: 4, litterChanged: null, litterBought: null }
+        };
+
+        let editingGroceryId = null;
+
+        // --- Data Loading & Syncing ---
+
+        function initDataSync() {
+            if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY") {
+                try {
+                    firebase.initializeApp(firebaseConfig);
+                    db = firebase.firestore();
+                    isLive = true;
+                    
+                    const badge = document.getElementById('sync-status');
+                    badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_5px_#22c55e]"></span> Live Sync On`;
+                    badge.className = "flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-green-400 bg-green-950/30 px-2 py-1 rounded-md border border-green-900";
+
+                    db.collection('command_center').doc('home_data').onSnapshot((doc) => {
+                        if (doc.exists) {
+                            const parsed = doc.data();
+                            state = { ...state, ...parsed, chores: { ...state.chores, ...(parsed.chores || {}) } };
+                            renderAll();
+                        }
+                    });
+                } catch (e) {
+                    console.error("Firebase init failed:", e);
+                    fallbackToLocal();
+                }
+            } else {
+                fallbackToLocal();
+            }
+        }
+
+        function fallbackToLocal() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    state = { ...state, ...parsed, chores: { ...state.chores, ...(parsed.chores || {}) } };
+                } catch (e) { console.error("Corrupted local save file", e); }
+            }
+            renderAll();
+        }
+
+        function saveData() {
+            if (isLive) {
+                db.collection('command_center').doc('home_data').set(state)
+                  .catch(err => console.error("Error saving to live DB:", err));
+            } else {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            }
+        }
+
+        // --- Security ---
+
+        async function encodePin(message) {
+            return Array.from(message).map(c => c.charCodeAt(0).toString(16)).join('');
+        }
+
+        document.getElementById('auth-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const input = document.getElementById('pin-input').value;
+            const err = document.getElementById('auth-error');
+            
+            const inputHash = await encodePin(input);
+            
+            if (inputHash === TARGET_HASH) {
+                sessionStorage.setItem('cmd_auth', 'true');
+                unlockApp();
+            } else {
+                err.classList.remove('hidden');
+                document.getElementById('pin-input').value = '';
+            }
+        });
+
+        function unlockApp() {
+            document.getElementById('auth-view').classList.add('hidden');
+            document.getElementById('app-view').classList.remove('hidden');
+            document.getElementById('pin-input').value = '';
+            document.getElementById('auth-error').classList.add('hidden');
+            initDataSync(); 
+        }
+
+        function lockApp() {
+            sessionStorage.removeItem('cmd_auth');
+            document.getElementById('app-view').classList.add('hidden');
+            document.getElementById('auth-view').classList.remove('hidden');
+        }
+
+        // --- Utilities ---
+        
+        function formatDate(iso) {
+            if (!iso) return 'Never';
+            return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+        function formatDateTime(iso) {
+            if (!iso) return 'Never';
+            return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' });
+        }
+        function addDays(iso, days) {
+            if (!iso) return 'ASAP';
+            let d = new Date(iso);
+            d.setDate(d.getDate() + days);
+            const now = new Date();
+            const isLate = d < now;
+            return `<span class="${isLate ? 'text-red-500 drop-shadow-[0_0_5px_rgba(239,68,68,0.5)]' : 'text-purple-400'}">${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>`;
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('border-red-900', 'text-red-600', 'bg-zinc-900/50');
+                el.classList.add('border-transparent', 'text-zinc-600');
+            });
+            document.getElementById(`view-${tabId}`).classList.remove('hidden');
+            const activeTab = document.getElementById(`tab-${tabId}`);
+            activeTab.classList.add('border-red-900', 'text-red-600', 'bg-zinc-900/50');
+            activeTab.classList.remove('border-transparent', 'text-zinc-600');
+            renderAll(); 
+        }
+
+        // --- Groceries Logic ---
+
+        function toggleGroceryForm() {
+            const form = document.getElementById('grocery-form');
+            if (form.classList.contains('hidden')) {
+                form.classList.remove('hidden');
+                document.getElementById('g-form-icon').innerText = '❌';
+                document.getElementById('g-form-text').innerText = 'Cancel';
+            } else {
+                form.classList.add('hidden');
+                document.getElementById('g-form-icon').innerText = '➕';
+                document.getElementById('g-form-text').innerText = 'Add Item';
+                form.reset();
+                editingGroceryId = null;
+                document.getElementById('g-form-title').innerText = 'New Grocery Item';
+                checkCustomCategory();
+            }
+        }
+
+        function checkCustomCategory() {
+            const select = document.getElementById('g-cat-select');
+            const custom = document.getElementById('g-cat-custom');
+            if (select.value === 'custom') {
+                custom.classList.remove('hidden');
+                custom.required = true;
+            } else {
+                custom.classList.add('hidden');
+                custom.required = false;
+            }
+        }
+
+        document.getElementById('grocery-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const catSelect = document.getElementById('g-cat-select').value;
+            const category = catSelect === 'custom' ? document.getElementById('g-cat-custom').value : catSelect;
+            
+            const newItem = {
+                id: editingGroceryId || Date.now().toString(),
+                name: document.getElementById('g-name').value,
+                category: category,
+                type: document.getElementById('g-type').value,
+                store: document.getElementById('g-store').value,
+                notes: document.getElementById('g-notes').value,
+                stockQty: parseFloat(document.getElementById('g-stock').value) || 0,
+                buyQty: document.getElementById('g-buy').value || '1',
+                need: document.getElementById('g-need').checked,
+                lastBought: null
+            };
+
+            if (editingGroceryId) {
+                const idx = state.groceries.findIndex(g => g.id === editingGroceryId);
+                if (idx > -1) {
+                    newItem.lastBought = state.groceries[idx].lastBought;
+                    state.groceries[idx] = newItem;
+                }
+            } else {
+                state.groceries.push(newItem);
+            }
+
+            saveData();
+            toggleGroceryForm();
+            renderGroceries();
+            renderMeals(); 
+        });
+
+        function editGrocery(id) {
+            const g = state.groceries.find(g => g.id === id);
+            if(!g) return;
+            editingGroceryId = g.id;
+            
+            document.getElementById('g-name').value = g.name;
+            document.getElementById('g-type').value = g.type || '';
+            document.getElementById('g-store').value = g.store || '';
+            document.getElementById('g-notes').value = g.notes || '';
+            document.getElementById('g-stock').value = g.stockQty;
+            document.getElementById('g-buy').value = g.buyQty || '1';
+            document.getElementById('g-need').checked = g.need;
+            
+            const select = document.getElementById('g-cat-select');
+            const options = Array.from(select.options).map(o => o.value);
+            if(options.includes(g.category)) {
+                select.value = g.category;
+                document.getElementById('g-cat-custom').classList.add('hidden');
+            } else {
+                select.value = 'custom';
+                document.getElementById('g-cat-custom').value = g.category;
+                document.getElementById('g-cat-custom').classList.remove('hidden');
+            }
+
+            document.getElementById('g-form-title').innerText = 'Edit Grocery Item';
+            if(document.getElementById('grocery-form').classList.contains('hidden')) toggleGroceryForm();
+            window.scrollTo(0,0);
+        }
+
+        function deleteGrocery(id) {
+            state.groceries = state.groceries.filter(g => g.id !== id);
+            saveData();
+            renderGroceries();
+            renderMeals();
+        }
+
+        function handlePickup(id) {
+            const idx = state.groceries.findIndex(g => g.id === id);
+            if (idx > -1) {
+                state.groceries[idx].need = false;
+                state.groceries[idx].lastBought = new Date().toISOString();
+                
+                const buyQ = parseFloat(state.groceries[idx].buyQty) || 1;
+                state.groceries[idx].stockQty = (parseFloat(state.groceries[idx].stockQty) || 0) + buyQ;
+                
+                saveData();
+                renderGroceries();
+                renderMeals(); 
+            }
+        }
+
+        function addToList(id) {
+            const idx = state.groceries.findIndex(g => g.id === id);
+            if (idx > -1) {
+                state.groceries[idx].need = true;
+                saveData();
+                renderGroceries();
+                renderMeals(); 
+            }
+        }
+
+        function removeFromList(id) {
+            const idx = state.groceries.findIndex(g => g.id === id);
+            if (idx > -1) {
+                state.groceries[idx].need = false;
+                saveData();
+                renderGroceries();
+                renderMeals(); 
+            }
+        }
+
+        function renderGroceries() {
+            const needed = state.groceries.filter(g => g.need);
+            const stocked = state.groceries.filter(g => !g.need);
+            
+            const buildHtml = (items, isNeeded) => items.map(item => {
+                let tagsHtml = `<span class="text-[10px] font-bold px-2 py-1 bg-zinc-800 text-zinc-300 rounded-lg ml-2 uppercase tracking-wide">${item.category}</span>`;
+                if(item.type) tagsHtml += `<span class="text-[10px] font-bold px-2 py-1 bg-black text-zinc-400 border border-zinc-800 rounded-lg ml-2">${item.type}</span>`;
+                
+                const stockAmt = parseFloat(item.stockQty) || 0;
+                let lowStockBadge = '';
+                if(!isNeeded && stockAmt <= 2) {
+                    lowStockBadge = `<span class="text-[11px] font-bold text-red-500 bg-red-950 px-2 py-0.5 rounded border border-red-900 mt-1 block w-max shadow-[0_0_8px_rgba(153,27,27,0.4)]">⚠️ Low Stock (${stockAmt} left)</span>`;
+                }
+
+                return `
+                <div class="bg-zinc-900 p-4 rounded-2xl shadow-md border ${isNeeded ? 'border-red-900/50 shadow-red-900/10' : 'border-zinc-800'} flex gap-4 items-center">
+                    ${isNeeded ? `
+                        <button onclick="handlePickup('${item.id}')" class="w-12 h-12 flex-shrink-0 bg-black text-red-700 rounded-full flex flex-col items-center justify-center hover:bg-zinc-950 hover:border-red-800 font-bold border border-zinc-800 shadow-inner transition-colors" title="Mark Picked Up">✓</button>
+                    ` : ''}
+                    <div class="flex-1 min-w-0">
+                        <div class="flex flex-wrap items-center gap-y-1 mb-1">
+                            <h4 class="font-bold text-zinc-200">${item.name}</h4>
+                            ${tagsHtml}
+                        </div>
+                        ${item.notes ? `<p class="text-xs text-zinc-500 truncate mb-2 italic">📝 ${item.notes}</p>` : ''}
+                        
+                        <div class="flex flex-wrap gap-2 text-[11px] font-bold text-zinc-400 bg-black p-2 rounded-lg border border-zinc-800">
+                            ${item.store ? `<span>🏬 ${item.store}</span> • ` : ''}
+                            <span>Stock: <span class="text-zinc-200">${item.stockQty}</span></span> • 
+                            <span>Buy: <span class="text-zinc-200">${item.buyQty}</span></span>
+                        </div>
+                        ${lowStockBadge}
+                        ${!isNeeded && item.lastBought ? `<span class="text-[10px] font-semibold text-zinc-600 mt-1.5 block">Last bought: ${formatDate(item.lastBought)}</span>` : ''}
+                    </div>
+                    <div class="flex flex-col gap-2 border-l border-zinc-800 pl-4">
+                        ${!isNeeded ? `<button onclick="addToList('${item.id}')" class="text-xs bg-zinc-800 text-zinc-300 border border-zinc-700 font-bold py-2 px-3 rounded-xl hover:bg-zinc-700 hover:text-white transition-colors">Add to List</button>` : ''}
+                        ${isNeeded ? `<button onclick="removeFromList('${item.id}')" class="text-[10px] text-zinc-500 font-bold hover:text-red-500 transition-colors">Remove</button>` : ''}
+                        <div class="flex justify-center gap-3 mt-1">
+                            <button onclick="editGrocery('${item.id}')" class="text-zinc-500 hover:text-zinc-200 transition-colors">✏️</button>
+                            <button onclick="deleteGrocery('${item.id}')" class="text-zinc-600 hover:text-red-600 transition-colors">🗑️</button>
+                        </div>
+                    </div>
+                </div>
+            `}).join('');
+
+            document.getElementById('list-needed').innerHTML = needed.length ? buildHtml(needed, true) : '<p class="text-sm text-zinc-600 italic bg-black p-4 rounded-xl text-center border border-zinc-900">Shopping list is empty.</p>';
+            document.getElementById('list-stocked').innerHTML = stocked.length ? buildHtml(stocked, false) : '<p class="text-sm text-zinc-600 italic">No inventory.</p>';
+        }
+
+        document.getElementById('todo-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const input = document.getElementById('todo-input');
+            if(!input.value) return;
+            state.todos.unshift({
+                id: Date.now().toString(),
+                text: input.value,
+                completed: false,
+                archived: false,
+                history: [`Added ${formatDateTime(new Date().toISOString())}`]
+            });
+            input.value = '';
+            saveData();
+            renderTodos();
+        });
+
+        function toggleTodoState(id) {
+            const t = state.todos.find(t => t.id === id);
+            if(t) {
+                t.completed = !t.completed;
+                t.history.push(`${t.completed ? 'Completed' : 'Unchecked'} ${formatDateTime(new Date().toISOString())}`);
+                saveData();
+                renderTodos();
+            }
+        }
+        
+        function archiveTodo(id) {
+            const t = state.todos.find(t => t.id === id);
+            if(t) { t.archived = !t.archived; saveData(); renderTodos(); }
+        }
+
+        function deleteTodo(id) {
+            state.todos = state.todos.filter(t => t.id !== id);
+            saveData();
+            renderTodos();
+        }
+
+        let showArchive = false;
+        function toggleArchive() {
+            showArchive = !showArchive;
+            document.getElementById('todo-archive').classList.toggle('hidden', !showArchive);
+            document.getElementById('archive-toggle').innerText = showArchive ? "Hide Archive" : "Show Archive";
+        }
+
+        function renderTodos() {
+            const active = state.todos.filter(t => !t.archived);
+            const archived = state.todos.filter(t => t.archived);
+            
+            const buildTodo = (t) => `
+                <div class="bg-zinc-900 p-4 rounded-2xl shadow-sm border border-zinc-800 flex flex-col gap-2">
+                    <div class="flex items-center gap-3">
+                        <button onclick="toggleTodoState('${t.id}')" class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${t.completed ? 'bg-red-950 border-red-900 text-red-500' : 'border-zinc-700 bg-black'}">
+                            ${t.completed ? '✓' : ''}
+                        </button>
+                        <span class="flex-1 font-medium ${t.completed ? 'line-through text-zinc-600' : 'text-zinc-200'}">${t.text}</span>
+                        <button onclick="archiveTodo('${t.id}')" class="text-xs px-2 py-1 bg-black border border-zinc-800 hover:bg-zinc-800 rounded-lg text-zinc-400 font-bold transition-colors">${t.archived ? 'Unarchive' : 'Archive'}</button>
+                        <button onclick="deleteTodo('${t.id}')" class="text-zinc-600 hover:text-red-600 transition-colors">🗑️</button>
+                    </div>
+                    <div class="text-[10px] text-zinc-600 mt-1 pl-9 font-medium">
+                        <span class="font-bold uppercase text-zinc-500">History:</span> ${t.history.slice(-2).join(' • ')}
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('todo-list').innerHTML = active.length ? active.map(buildTodo).join('') : '<p class="text-sm text-zinc-600 italic bg-black p-4 rounded-xl text-center border border-zinc-900">No active tasks.</p>';
+            document.getElementById('todo-archive').innerHTML = archived.length ? archived.map(buildTodo).join('') : '<p class="text-sm text-zinc-600 italic">Archive is empty.</p>';
+        }
+
+        function toggleMealForm() {
+            const form = document.getElementById('meal-form');
+            if(form.classList.contains('hidden')) {
+                form.classList.remove('hidden');
+                document.getElementById('m-form-icon').innerText = '❌';
+                document.getElementById('m-form-text').innerText = 'Cancel';
+            } else {
+                form.classList.add('hidden');
+                document.getElementById('m-form-icon').innerText = '➕';
+                document.getElementById('m-form-text').innerText = 'Plan Meal';
+                form.reset();
+            }
+        }
+
+        document.getElementById('meal-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            state.meals.push({
+                id: Date.now().toString(),
+                name: document.getElementById('m-name').value,
+                date: document.getElementById('m-date').value, 
+                repeatWeeks: parseInt(document.getElementById('m-repeat').value) || 0,
+                ingredients: [] 
+            });
+            saveData();
+            toggleMealForm();
+            renderMeals();
+        });
+
+        function addIngredientToMeal(mealId) {
+            const select = document.getElementById(`ing-select-${mealId}`);
+            if(!select || !select.value) return;
+            const meal = state.meals.find(m => m.id === mealId);
+            if(meal && !meal.ingredients.includes(select.value)) {
+                meal.ingredients.push(select.value);
+                saveData();
+                renderMeals();
+            }
+        }
+        
+        function removeIngredientFromMeal(mealId, ingId) {
+            const meal = state.meals.find(m => m.id === mealId);
+            if(meal) {
+                meal.ingredients = meal.ingredients.filter(id => id !== ingId);
+                saveData();
+                renderMeals();
+            }
+        }
+
+        function deleteMeal(id) {
+            state.meals = state.meals.filter(m => m.id !== id);
+            saveData();
+            renderMeals();
+        }
+
+        function getWeekCategory(dateStr) {
+            const d = new Date(dateStr + "T00:00:00");
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            
+            const currentSunday = new Date(today);
+            currentSunday.setDate(today.getDate() - today.getDay());
+            
+            const nextSunday = new Date(currentSunday);
+            nextSunday.setDate(currentSunday.getDate() + 7);
+            
+            const nextNextSunday = new Date(nextSunday);
+            nextNextSunday.setDate(nextSunday.getDate() + 7);
+
+            if (d < nextSunday) return "Current Week (Active)";
+            if (d >= nextSunday && d < nextNextSunday) return "Next Week";
+            return "Future Weeks";
+        }
+
+        function renderMeals() {
+            const groups = { "Current Week (Active)": [], "Next Week": [], "Future Weeks": [] };
+            state.meals.sort((a,b) => new Date(a.date) - new Date(b.date)).forEach(m => {
+                groups[getWeekCategory(m.date)].push(m);
+            });
+
+            let html = '';
+            
+            const gOptions = state.groceries.map(g => `<option value="${g.id}">${g.name} (${g.stockQty} in stock)</option>`).join('');
+
+            for (const [groupName, meals] of Object.entries(groups)) {
+                if(meals.length === 0) continue;
+                html += `
+                    <div>
+                        <h3 class="font-extrabold text-zinc-500 uppercase tracking-wider text-sm mb-4 border-b border-zinc-800 pb-2">${groupName}</h3>
+                        <div class="space-y-4">
+                `;
+                
+                meals.forEach(meal => {
+                    let ingredientsHtml = '';
+                    if(meal.ingredients && meal.ingredients.length > 0) {
+                        ingredientsHtml = meal.ingredients.map(ingId => {
+                            const g = state.groceries.find(x => x.id === ingId);
+                            if(!g) return '';
+                            
+                            let statusBadge = "";
+                            let actionBtn = "";
+                            const stockAmt = parseFloat(g.stockQty) || 0;
+
+                            if (g.need) {
+                                statusBadge = `<span class="text-[9px] font-bold px-1.5 py-0.5 bg-red-950 text-red-500 rounded border border-red-900 shadow-[0_0_5px_rgba(153,27,27,0.5)]">On Shopping List</span>`;
+                                actionBtn = `<button type="button" onclick="removeFromList('${g.id}')" class="text-[10px] text-red-600 font-bold hover:text-red-400 bg-black px-2 py-0.5 rounded border border-zinc-700 transition-colors">Remove from Cart</button>`;
+                            } else if (stockAmt <= 2) {
+                                statusBadge = `<span class="text-[9px] font-bold px-1.5 py-0.5 bg-orange-950 text-orange-500 rounded border border-orange-900">Low Stock (${stockAmt})</span>`;
+                                actionBtn = `<button type="button" onclick="addToList('${g.id}')" class="text-[10px] text-zinc-400 font-bold hover:text-zinc-200 bg-black px-2 py-0.5 rounded border border-zinc-700 transition-colors">Add to Cart</button>`;
+                            } else {
+                                statusBadge = `<span class="text-[9px] font-bold px-1.5 py-0.5 bg-zinc-800 text-zinc-400 rounded border border-zinc-700">In Stock (${stockAmt})</span>`;
+                                actionBtn = `<button type="button" onclick="addToList('${g.id}')" class="text-[10px] text-zinc-400 font-bold hover:text-zinc-200 bg-black px-2 py-0.5 rounded border border-zinc-700 transition-colors">Add to Cart</button>`;
+                            }
+
+                            return `
+                                <div class="flex items-center justify-between py-1.5 border-b border-zinc-800/50 last:border-0">
+                                    <div class="flex items-center gap-2">
+                                        <button onclick="removeIngredientFromMeal('${meal.id}', '${g.id}')" class="text-[10px] text-zinc-600 hover:text-red-500 transition-colors" title="Remove from meal">❌</button>
+                                        <span class="text-xs font-semibold text-zinc-300">${g.name}</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        ${statusBadge}
+                                        ${actionBtn}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+                    } else {
+                        ingredientsHtml = '<p class="text-[10px] text-zinc-600 italic">No ingredients linked yet.</p>';
+                    }
+
+                    html += `
+                        <div class="bg-zinc-900 p-5 rounded-2xl shadow-md border border-zinc-800">
+                            <div class="flex justify-between items-start mb-3">
+                                <div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="text-xs font-bold text-zinc-400 bg-black border border-zinc-800 px-2 py-1 rounded-md">Start: ${formatDate(meal.date)}</span>
+                                        ${meal.repeatWeeks > 0 ? `<span class="text-[10px] font-bold text-red-500 bg-red-950/50 border border-red-900 px-2 py-1 rounded-md uppercase">Repeats ${meal.repeatWeeks}w</span>` : ''}
+                                    </div>
+                                    <h4 class="font-extrabold text-lg text-zinc-100">${meal.name}</h4>
+                                </div>
+                                <button onclick="deleteMeal('${meal.id}')" class="text-zinc-600 hover:text-red-600 transition-colors p-2">🗑️</button>
+                            </div>
+                            
+                            <div class="bg-black rounded-xl p-3 border border-zinc-800 mt-2 shadow-inner">
+                                <h5 class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2 border-b border-zinc-800 pb-1">Linked Groceries</h5>
+                                ${ingredientsHtml}
+                                
+                                <div class="flex gap-2 mt-3 pt-3 border-t border-zinc-800">
+                                    <select id="ing-select-${meal.id}" class="flex-1 text-xs p-2 rounded-lg border border-zinc-700 bg-zinc-950 text-zinc-300 font-medium outline-none">
+                                        <option value="">Select from inventory...</option>
+                                        ${gOptions}
+                                    </select>
+                                    <button type="button" onclick="addIngredientToMeal('${meal.id}')" class="bg-zinc-800 text-zinc-200 border border-zinc-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-zinc-700 transition-colors">Add</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += `</div></div>`;
+            }
+            
+            document.getElementById('meals-list').innerHTML = html || '<p class="text-sm text-zinc-600 italic bg-black p-4 rounded-xl text-center border border-zinc-900">No meals planned yet.</p>';
+        }
+
+        function toggleChoreSettings() {
+            const el = document.getElementById('chore-settings');
+            if(el.classList.contains('hidden')) {
+                document.getElementById('set-change-weeks').value = state.chores.changeWeeks || 2;
+                document.getElementById('set-buy-weeks').value = state.chores.buyWeeks || 4;
+                el.classList.remove('hidden');
+            } else {
+                el.classList.add('hidden');
+            }
+        }
+        
+        function saveChoreSettings() {
+            state.chores.changeWeeks = parseInt(document.getElementById('set-change-weeks').value) || 2;
+            state.chores.buyWeeks = parseInt(document.getElementById('set-buy-weeks').value) || 4;
+            saveData();
+            toggleChoreSettings();
+            renderChores();
+        }
+
+        function updateLitter(type) {
+            const now = new Date().toISOString();
+            if (type === 'changed') state.chores.litterChanged = now;
+            else if (type === 'bought') state.chores.litterBought = now;
+            saveData();
+            renderChores();
+        }
+
+        function renderChores() {
+            document.getElementById('lit-change-last').innerText = formatDateTime(state.chores.litterChanged);
+            document.getElementById('lit-buy-last').innerText = formatDateTime(state.chores.litterBought);
+            document.getElementById('lit-change-due').innerHTML = addDays(state.chores.litterChanged, (state.chores.changeWeeks || 2) * 7);
+            document.getElementById('lit-buy-due').innerHTML = addDays(state.chores.litterBought, (state.chores.buyWeeks || 4) * 7);
+        }
+
+        // --- Global Initialization ---
+        function renderAll() {
+            renderGroceries();
+            renderTodos();
+            renderMeals();
+            renderChores();
+        }
+
+        window.onload = () => {
+            if (sessionStorage.getItem('cmd_auth') === 'true') {
+                unlockApp();
+            } else {
+                document.getElementById('auth-view').classList.remove('hidden');
+            }
+        };
+    </script>
+</body>
+</html>
