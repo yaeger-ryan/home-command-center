@@ -3,527 +3,643 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home Command Center</title>
-    
-    <!-- Tailwind CSS -->
+    <title>Command Center</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
-    
-    <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-
-    <!-- Confetti JS -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #09090b; color: #f4f4f5; }
-        
-        /* Custom Scrollbar for a sleek dark look */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #09090b; }
-        ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
-
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-        .glass-panel { background: rgba(24, 24, 27, 0.95); backdrop-filter: blur(10px); }
+        .glass-panel { background: rgba(24, 24, 27, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(63, 63, 70, 0.4); }
     </style>
 </head>
-<body class="antialiased min-h-screen flex flex-col">
+<body class="antialiased min-h-screen flex flex-col relative overflow-x-hidden">
 
-    <!-- AUTHENTICATION SCREEN -->
-    <div id="auth-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950 p-4">
-        <form id="auth-form" class="w-full max-w-sm bg-zinc-900 border border-zinc-800 p-8 rounded-3xl shadow-2xl flex flex-col items-center">
-            <div class="bg-red-950/30 p-4 rounded-full mb-4 text-red-600 border border-red-900/50">
-                <i class="ph ph-shield-check text-4xl"></i>
-            </div>
-            <h2 class="text-2xl font-black mb-2 text-zinc-100 tracking-tight text-center">Command Center</h2>
-            <p id="auth-subtitle" class="text-zinc-400 mb-6 text-center text-sm font-semibold">Enter your PIN to access</p>
-            
-            <input type="password" id="pin-input" placeholder="••••" class="w-full p-4 mb-2 bg-zinc-950 border border-zinc-800 rounded-xl text-center text-3xl tracking-[1em] outline-none focus:border-red-800 focus:ring-1 focus:ring-red-800 transition-all text-zinc-100 font-mono" maxLength="6">
-            <p id="auth-error" class="text-red-500 text-xs font-bold mb-4 h-4"></p>
-            
-            <button type="submit" class="w-full bg-zinc-100 text-zinc-950 py-4 rounded-xl font-black uppercase tracking-widest hover:bg-white transition-colors mt-2 shadow-[0_0_15px_rgba(255,255,255,0.1)]">
-                Unlock
-            </button>
-        </form>
-    </div>
-
-    <!-- MAIN APP (Hidden until auth) -->
-    <div id="main-app" class="hidden flex-1 flex flex-col w-full max-w-2xl mx-auto pb-24 relative">
-        
-        <!-- Header -->
-        <header class="glass-panel border-b border-zinc-800 p-4 flex justify-between items-center sticky top-0 z-30">
-            <h1 class="font-black text-xl text-zinc-100 tracking-tighter flex items-center gap-2">
-                <div class="w-2 h-6 bg-red-800 rounded-full"></div>
-                HOME BASE
-            </h1>
-            <div class="flex items-center gap-3">
-                <button onclick="toggleTimerMenu()" class="text-zinc-400 hover:text-red-400 p-2 rounded-lg bg-zinc-900 border border-zinc-800 transition-colors">
-                    <i class="ph ph-timer text-lg"></i>
-                </button>
-                <button onclick="toggleDataManager()" class="text-zinc-400 hover:text-zinc-100 p-2 rounded-lg bg-zinc-900 border border-zinc-800 transition-colors">
-                    <i class="ph ph-floppy-disk text-lg"></i>
-                </button>
-                <button onclick="lockApp()" class="text-xs font-bold uppercase tracking-wider bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-300 px-3 py-2 rounded-lg transition-colors">
-                    Lock
-                </button>
-            </div>
-        </header>
-
-        <!-- Timer Bar (Dropdown) -->
-        <div id="timer-bar" class="hidden glass-panel border-b border-red-900/50 p-4 sticky top-[73px] z-20 flex justify-between items-center shadow-xl">
-            <div class="flex items-center gap-3">
-                <i class="ph-fill ph-cooking-pot text-red-500 text-2xl animate-pulse"></i>
-                <div class="flex flex-col">
-                    <span class="text-[10px] font-black text-red-500 uppercase tracking-widest">Cooking Timer</span>
-                    <span id="timer-display" class="font-mono font-black text-zinc-100 text-2xl leading-none">00:00</span>
-                </div>
-            </div>
-            <div class="flex items-center gap-2">
-                <input type="number" id="timer-mins" placeholder="Mins" class="w-16 p-2 bg-zinc-950 border border-zinc-700 rounded-lg text-zinc-100 font-bold text-center outline-none focus:border-red-500">
-                <button id="btn-start-timer" onclick="startTimer()" class="bg-red-900 hover:bg-red-800 text-white px-4 py-2 rounded-lg font-bold">Start</button>
-                <button id="btn-dismiss-timer" onclick="dismissTimer()" class="hidden bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-4 py-2 rounded-lg font-bold border border-zinc-700">Dismiss</button>
+    <!-- COOKING TIMER (GLOBAL) -->
+    <div id="global-timer" class="hidden fixed top-0 left-0 right-0 z-[100] bg-red-900 border-b border-red-700 shadow-xl px-4 py-3 flex justify-between items-center transform transition-transform">
+        <div class="flex items-center gap-3">
+            <i class="ph-fill ph-timer text-2xl text-red-200 animate-pulse"></i>
+            <div class="flex flex-col">
+                <span class="text-[10px] font-bold text-red-300 uppercase tracking-widest leading-none">Timer Running</span>
+                <span id="timer-display" class="font-black text-xl text-white leading-none mt-1">00:00</span>
             </div>
         </div>
+        <div class="flex gap-2">
+            <button id="timer-dismiss-btn" onclick="dismissTimer()" class="hidden bg-white text-red-900 px-4 py-2 rounded-xl font-bold text-sm shadow hover:bg-red-50">Dismiss</button>
+            <button id="timer-cancel-btn" onclick="cancelTimer()" class="bg-red-950 text-red-200 px-3 py-2 rounded-xl font-bold text-sm hover:bg-red-900">Cancel</button>
+        </div>
+    </div>
 
-        <!-- Navigation -->
-        <nav class="flex bg-zinc-950 border-b border-zinc-800 overflow-x-auto no-scrollbar shadow-sm sticky top-[73px] z-10">
-            <button onclick="switchTab('groceries')" id="tab-btn-groceries" class="flex-1 min-w-[80px] py-3 flex flex-col items-center gap-1 transition-colors border-b-2 border-red-700 text-red-500">
-                <i class="ph-fill ph-shopping-cart text-xl"></i><span class="text-[10px] font-black uppercase tracking-wider">Inventory</span>
-            </button>
-            <button onclick="switchTab('todos')" id="tab-btn-todos" class="flex-1 min-w-[80px] py-3 flex flex-col items-center gap-1 transition-colors border-b-2 border-transparent text-zinc-500 hover:text-zinc-300">
-                <i class="ph-fill ph-check-square-offset text-xl"></i><span class="text-[10px] font-black uppercase tracking-wider">Tasks</span>
-            </button>
-            <button onclick="switchTab('meals')" id="tab-btn-meals" class="flex-1 min-w-[80px] py-3 flex flex-col items-center gap-1 transition-colors border-b-2 border-transparent text-zinc-500 hover:text-zinc-300">
-                <i class="ph-fill ph-bowl-food text-xl"></i><span class="text-[10px] font-black uppercase tracking-wider">Meals</span>
-            </button>
-            <button onclick="switchTab('chores')" id="tab-btn-chores" class="flex-1 min-w-[80px] py-3 flex flex-col items-center gap-1 transition-colors border-b-2 border-transparent text-zinc-500 hover:text-zinc-300">
-                <i class="ph-fill ph-cat text-xl"></i><span class="text-[10px] font-black uppercase tracking-wider">Chores</span>
-            </button>
-            <button onclick="switchTab('health')" id="tab-btn-health" class="flex-1 min-w-[80px] py-3 flex flex-col items-center gap-1 transition-colors border-b-2 border-transparent text-zinc-500 hover:text-zinc-300">
-                <i class="ph-fill ph-heartbeat text-xl"></i><span class="text-[10px] font-black uppercase tracking-wider">Health</span>
-            </button>
-        </nav>
+    <!-- PIN LOCK SCREEN -->
+    <div id="auth-screen" class="fixed inset-0 z-[200] bg-zinc-950 flex flex-col items-center justify-center p-4">
+        <div class="w-full max-w-sm glass-panel p-8 rounded-3xl flex flex-col items-center text-center shadow-2xl">
+            <i class="ph-fill ph-lock-key text-5xl text-zinc-600 mb-4"></i>
+            <h1 class="text-2xl font-black mb-2 tracking-tight">Command Center</h1>
+            <p class="text-zinc-500 text-sm mb-6 font-medium">Enter your PIN to access</p>
+            <input type="password" id="pin-input" class="w-full bg-zinc-900 border border-zinc-700 text-center text-3xl tracking-widest p-4 rounded-xl text-zinc-100 outline-none focus:border-red-900 focus:ring-1 focus:ring-red-900 transition-all mb-4" placeholder="••••">
+            <p id="pin-error" class="text-red-500 text-sm mb-4 hidden font-bold">Incorrect PIN</p>
+            <button onclick="checkPin()" class="w-full bg-zinc-100 text-zinc-950 font-black py-4 rounded-xl hover:bg-white shadow-lg transition-colors">UNLOCK</button>
+        </div>
+    </div>
 
-        <!-- Main Content Area -->
-        <main class="p-4 flex-1">
-            
-            <!-- GROCERIES TAB -->
-            <div id="tab-groceries">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-black tracking-tight">Pantry & List</h2>
-                    <button onclick="toggleGroceryForm()" class="bg-zinc-100 text-zinc-950 px-4 py-2 rounded-xl font-black text-sm uppercase tracking-widest hover:bg-white shadow-[0_0_10px_rgba(255,255,255,0.1)] flex items-center gap-2">
-                        <i class="ph ph-plus-bold"></i> Add
-                    </button>
+    <!-- MAIN APP HEADER -->
+    <header id="main-header" class="hidden glass-panel sticky top-0 z-40 px-4 py-3 flex justify-between items-center shadow-sm">
+        <h1 class="font-black text-xl tracking-tighter flex items-center gap-2">
+            <div class="w-2 h-6 bg-red-900 rounded-full"></div>
+            Home Base
+        </h1>
+        <div class="flex gap-2">
+            <button onclick="toggleTimerSetup()" class="p-2 bg-zinc-900 text-zinc-300 rounded-lg hover:text-white border border-zinc-800"><i class="ph-fill ph-timer text-lg"></i></button>
+            <button onclick="toggleDataModal()" class="p-2 bg-zinc-900 text-zinc-300 rounded-lg hover:text-white border border-zinc-800"><i class="ph-fill ph-floppy-disk text-lg"></i></button>
+            <button onclick="lockApp()" class="px-3 py-2 bg-zinc-900 text-zinc-300 text-xs font-bold rounded-lg hover:text-white border border-zinc-800">LOCK</button>
+        </div>
+    </header>
+
+    <!-- NAVIGATION TABS -->
+    <nav id="main-nav" class="hidden sticky top-[60px] z-30 flex overflow-x-auto no-scrollbar glass-panel border-t-0 shadow-sm">
+        <button onclick="switchTab('groceries')" id="nav-groceries" class="flex-1 min-w-[80px] py-4 flex flex-col items-center gap-1 text-zinc-500 hover:text-zinc-300 transition-colors border-b-2 border-transparent">
+            <i class="ph-fill ph-shopping-cart text-xl"></i><span class="text-[10px] font-bold uppercase tracking-wider">Inventory</span>
+        </button>
+        <button onclick="switchTab('todos')" id="nav-todos" class="flex-1 min-w-[80px] py-4 flex flex-col items-center gap-1 text-zinc-500 hover:text-zinc-300 transition-colors border-b-2 border-transparent">
+            <i class="ph-fill ph-check-square-offset text-xl"></i><span class="text-[10px] font-bold uppercase tracking-wider">Tasks</span>
+        </button>
+        <button onclick="switchTab('meals')" id="nav-meals" class="flex-1 min-w-[80px] py-4 flex flex-col items-center gap-1 text-zinc-500 hover:text-zinc-300 transition-colors border-b-2 border-transparent">
+            <i class="ph-fill ph-cooking-pot text-xl"></i><span class="text-[10px] font-bold uppercase tracking-wider">Meals</span>
+        </button>
+        <button onclick="switchTab('chores')" id="nav-chores" class="flex-1 min-w-[80px] py-4 flex flex-col items-center gap-1 text-zinc-500 hover:text-zinc-300 transition-colors border-b-2 border-transparent">
+            <i class="ph-fill ph-cat text-xl"></i><span class="text-[10px] font-bold uppercase tracking-wider">Cat</span>
+        </button>
+        <button onclick="switchTab('health')" id="nav-health" class="flex-1 min-w-[80px] py-4 flex flex-col items-center gap-1 text-zinc-500 hover:text-zinc-300 transition-colors border-b-2 border-transparent">
+            <i class="ph-fill ph-heartbeat text-xl"></i><span class="text-[10px] font-bold uppercase tracking-wider">Health</span>
+        </button>
+    </nav>
+
+    <main id="main-content" class="hidden flex-1 p-4 w-full max-w-2xl mx-auto pb-24">
+        
+        <!-- GROCERIES TAB -->
+        <div id="tab-groceries" class="hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-black tracking-tight">Inventory</h2>
+                <button onclick="toggleGroceryForm()" class="bg-zinc-100 text-zinc-950 px-4 py-2 rounded-xl font-black text-sm uppercase tracking-widest hover:bg-white shadow-lg flex items-center gap-2">
+                    <i class="ph ph-plus-bold"></i> Add
+                </button>
+            </div>
+
+            <!-- New/Edit Form -->
+            <div id="grocery-form-container" class="hidden bg-zinc-900 border border-zinc-800 p-5 rounded-2xl shadow-xl mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 id="gf-title" class="font-black text-zinc-100">Add Item</h3>
+                    <button onclick="toggleGroceryForm()" class="text-zinc-500 hover:text-zinc-300"><i class="ph-fill ph-x-circle text-xl"></i></button>
                 </div>
-
-                <!-- Grocery Form (Hidden) -->
-                <div id="grocery-form-container" class="hidden bg-zinc-900 border border-zinc-800 p-5 rounded-2xl mb-6 shadow-xl">
-                    <h3 id="gf-title" class="font-black text-lg text-zinc-100 mb-4 border-b border-zinc-800 pb-2">New Item</h3>
-                    <input type="hidden" id="gf-id">
-                    
-                    <div class="space-y-4">
+                <input type="hidden" id="gf-id">
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Item Name *</label>
+                        <input id="gf-name" type="text" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 outline-none focus:border-red-900">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Item Name *</label>
-                            <input id="gf-name" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 outline-none focus:border-red-900" placeholder="e.g. Oat Milk">
+                            <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Category</label>
+                            <input id="gf-category" list="category-list" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 outline-none focus:border-red-900" placeholder="e.g. Produce">
+                            <datalist id="category-list"></datalist>
                         </div>
-                        
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Category</label>
-                                <input id="gf-category" list="cat-suggestions" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 outline-none focus:border-red-900" placeholder="e.g. Produce">
-                                <datalist id="cat-suggestions">
-                                    <option value="Produce"></option><option value="Meat & Poultry"></option>
-                                    <option value="Dairy & Eggs"></option><option value="Pantry"></option>
-                                    <option value="Frozen"></option><option value="Beverages"></option>
-                                    <option value="Household"></option><option value="Pet"></option>
-                                </datalist>
-                            </div>
-                            <div>
-                                <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Type</label>
-                                <input id="gf-type" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 outline-none focus:border-red-900" placeholder="e.g. Vegetable, Snack">
-                            </div>
-                        </div>
-
                         <div>
-                            <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Preferred Store</label>
-                            <input id="gf-store" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 outline-none focus:border-red-900" placeholder="e.g. Aldi, Target">
-                        </div>
-
-                        <div class="grid grid-cols-3 gap-4 bg-zinc-950 p-4 rounded-xl border border-zinc-800/50">
-                            <div>
-                                <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Stock</label>
-                                <input type="number" id="gf-stock" min="0" class="w-full p-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 text-center outline-none focus:border-red-900">
-                            </div>
-                            <div>
-                                <label class="text-[10px] font-bold text-red-500 uppercase tracking-wider mb-1 block">Need</label>
-                                <input type="number" id="gf-need" min="0" class="w-full p-2 bg-red-950/30 border border-red-900/50 rounded-lg text-zinc-100 text-center outline-none focus:border-red-500">
-                            </div>
-                            <div>
-                                <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Pack Size</label>
-                                <input id="gf-packsize" class="w-full p-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 text-center outline-none focus:border-red-900" placeholder="e.g. Bag, 8-pk">
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Notes</label>
-                            <input id="gf-notes" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 outline-none focus:border-red-900" placeholder="Brand, flavor, details...">
-                        </div>
-
-                        <div class="flex gap-3 pt-2">
-                            <button onclick="toggleGroceryForm()" class="flex-1 bg-zinc-800 text-zinc-300 py-3 rounded-xl font-bold hover:bg-zinc-700 transition-colors">Cancel</button>
-                            <button onclick="saveGrocery()" class="flex-1 bg-red-900 text-zinc-100 py-3 rounded-xl font-bold hover:bg-red-800 transition-colors shadow-lg">Save Item</button>
+                            <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Type</label>
+                            <input id="gf-type" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 outline-none focus:border-red-900" placeholder="e.g. Pantry">
                         </div>
                     </div>
-                </div>
-
-                <!-- Shopping List -->
-                <div class="mb-8">
-                    <h3 class="font-black text-zinc-400 uppercase tracking-widest text-sm flex items-center gap-2 mb-4">
-                        <i class="ph-fill ph-shopping-bag text-red-500 text-lg"></i> Need To Buy
-                    </h3>
-                    <div id="shopping-list-container" class="space-y-4"></div>
-                </div>
-
-                <!-- Inventory List -->
-                <div>
-                    <h3 class="font-black text-zinc-400 uppercase tracking-widest text-sm flex items-center gap-2 mb-4">
-                        <i class="ph-fill ph-package text-emerald-500 text-lg"></i> In Stock
-                    </h3>
-                    <div id="inventory-list-container" class="space-y-4"></div>
+                    <div class="grid grid-cols-3 gap-3">
+                        <div>
+                            <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Current Stock</label>
+                            <input id="gf-stock" type="number" min="0" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 outline-none focus:border-red-900" value="0">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Need To Buy</label>
+                            <input id="gf-need" type="number" min="0" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 outline-none focus:border-red-900" value="0">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Pack Size</label>
+                            <input id="gf-packSize" type="text" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 outline-none focus:border-red-900" placeholder="e.g. bag, 8-pack">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Store</label>
+                            <input id="gf-store" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 outline-none focus:border-red-900" placeholder="e.g. Target">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Notes</label>
+                            <input id="gf-notes" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 outline-none focus:border-red-900" placeholder="Brand, flavor...">
+                        </div>
+                    </div>
+                    <button onclick="saveGrocery()" class="w-full bg-red-900 text-zinc-100 py-3 rounded-xl font-bold hover:bg-red-800 transition-colors mt-2">Save to List</button>
                 </div>
             </div>
 
-            <!-- TASKS TAB -->
-            <div id="tab-todos" class="hidden">
-                <h2 class="text-2xl font-black tracking-tight mb-6">Task Manager</h2>
-                
-                <div class="flex gap-2 mb-6">
-                    <input id="todo-input" placeholder="Add a new task..." class="flex-1 p-4 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-100 outline-none focus:border-red-900 placeholder-zinc-600 shadow-inner">
-                    <button onclick="addTask()" class="bg-zinc-100 text-zinc-950 p-4 rounded-xl shadow-lg hover:bg-white transition-colors">
-                        <i class="ph ph-plus-bold text-xl"></i>
+            <!-- Grocery Lists container -->
+            <div id="grocery-lists" class="space-y-6"></div>
+        </div>
+
+        <!-- TASKS TAB -->
+        <div id="tab-todos" class="hidden">
+            <h2 class="text-2xl font-black tracking-tight mb-6">Action Items</h2>
+            <div class="flex gap-2 mb-6">
+                <input id="todo-input" type="text" placeholder="Add a new task..." class="flex-1 bg-zinc-900 border border-zinc-800 p-4 rounded-2xl text-zinc-100 outline-none focus:border-red-900 placeholder-zinc-600 shadow-sm">
+                <button onclick="addTodo()" class="bg-zinc-100 text-zinc-950 px-5 rounded-2xl shadow-lg hover:bg-white transition-colors"><i class="ph ph-plus-bold text-xl"></i></button>
+            </div>
+            <div id="todo-list" class="space-y-3"></div>
+        </div>
+
+        <!-- MEALS TAB -->
+        <div id="tab-meals" class="hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-black tracking-tight">Meal Planning</h2>
+                <div class="flex gap-2">
+                    <button onclick="toggleCookTimes()" class="bg-zinc-800 text-zinc-300 px-3 py-2 rounded-xl font-black text-sm uppercase tracking-widest hover:bg-zinc-700 shadow-lg flex items-center gap-2">
+                        <i class="ph-fill ph-info"></i> Info
                     </button>
-                </div>
-
-                <div id="todos-container" class="space-y-3"></div>
-            </div>
-
-            <!-- MEALS TAB -->
-            <div id="tab-meals" class="hidden">
-                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-black tracking-tight">Meal Planning</h2>
                     <button onclick="toggleMealForm()" class="bg-zinc-100 text-zinc-950 px-4 py-2 rounded-xl font-black text-sm uppercase tracking-widest hover:bg-white shadow-lg flex items-center gap-2">
                         <i class="ph ph-plus-bold"></i> Plan
                     </button>
                 </div>
-
-                <div id="meal-form-container" class="hidden bg-zinc-900 border border-zinc-800 p-5 rounded-2xl mb-6 shadow-xl">
-                    <div class="space-y-4">
-                        <div>
-                            <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Meal Name *</label>
-                            <input id="mf-name" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 outline-none focus:border-red-900">
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Date *</label>
-                                <input type="date" id="mf-date" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 outline-none color-scheme-dark">
-                            </div>
-                            <div>
-                                <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Type</label>
-                                <select id="mf-type" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 outline-none">
-                                    <option class="bg-zinc-950">Dinner (Weekly)</option>
-                                    <option class="bg-zinc-950">Meal Prep (Lunches)</option>
-                                    <option class="bg-zinc-950">Breakfast</option>
-                                    <option class="bg-zinc-950">Snack</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="flex gap-3 pt-2">
-                            <button onclick="toggleMealForm()" class="flex-1 bg-zinc-800 text-zinc-300 py-3 rounded-xl font-bold hover:bg-zinc-700 transition-colors">Cancel</button>
-                            <button onclick="saveMeal()" class="flex-1 bg-red-900 text-zinc-100 py-3 rounded-xl font-bold hover:bg-red-800 transition-colors">Save Meal</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="space-y-6" id="meals-container"></div>
             </div>
 
-            <!-- CHORES TAB (Cat Centric) -->
-            <div id="tab-chores" class="hidden">
-                 <h2 class="text-2xl font-black tracking-tight mb-6 flex items-center gap-3">
-                     Cat Command <i class="ph-fill ph-cat text-red-500"></i>
-                 </h2>
-                 
-                 <!-- Litter Box -->
-                 <div class="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl shadow-sm mb-6">
-                     <h3 class="font-black text-zinc-100 mb-4 border-b border-zinc-800 pb-2">Litter Box</h3>
-                     <div class="grid grid-cols-2 gap-4">
-                         <button onclick="updateCatTask('litterPicked')" class="bg-zinc-950 border border-zinc-800 p-4 rounded-xl flex flex-col items-center hover:border-red-900 transition-colors">
-                             <span class="font-bold text-zinc-300">Scooped</span>
-                             <span id="litter-scoop-date" class="text-[10px] font-black text-red-500 mt-2 uppercase tracking-widest">Never</span>
-                         </button>
-                         <button onclick="updateCatTask('litterChanged')" class="bg-zinc-950 border border-zinc-800 p-4 rounded-xl flex flex-col items-center hover:border-red-900 transition-colors">
-                             <span class="font-bold text-zinc-300">Fully Changed</span>
-                             <span id="litter-change-date" class="text-[10px] font-black text-red-500 mt-2 uppercase tracking-widest">Never</span>
-                         </button>
-                     </div>
-                 </div>
-
-                 <!-- Grooming (Claws & Brush) -->
-                 <div class="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl shadow-sm mb-6">
-                    <h3 class="font-black text-zinc-100 mb-4 border-b border-zinc-800 pb-2">Grooming</h3>
-                    <div class="grid grid-cols-2 gap-4">
-                        <!-- Claws -->
-                        <div class="bg-zinc-950 border border-zinc-800 p-4 rounded-xl flex flex-col items-center relative">
-                            <span class="font-bold text-zinc-300 mb-1">Claws Clipped</span>
-                            <div class="flex items-center gap-1 mb-2">
-                                <span class="text-[10px] text-zinc-500">Every</span>
-                                <input type="number" id="cat-claws-weeks" value="4" onchange="updateCatSettings()" class="w-10 bg-zinc-900 border border-zinc-700 text-center text-xs p-1 rounded text-zinc-300 outline-none">
-                                <span class="text-[10px] text-zinc-500">wks</span>
-                            </div>
-                            <span id="claws-due-date" class="text-[10px] font-black text-red-500 uppercase tracking-widest mb-3">Due: Never</span>
-                            <button onclick="updateCatTask('clawsClipped')" class="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-bold py-2 rounded-lg">Mark Done</button>
-                        </div>
-                        <!-- Brush -->
-                        <div class="bg-zinc-950 border border-zinc-800 p-4 rounded-xl flex flex-col items-center relative">
-                            <span class="font-bold text-zinc-300 mb-1">Brushed</span>
-                            <div class="flex items-center gap-1 mb-2">
-                                <span class="text-[10px] text-zinc-500">Every</span>
-                                <input type="number" id="cat-brush-weeks" value="1" onchange="updateCatSettings()" class="w-10 bg-zinc-900 border border-zinc-700 text-center text-xs p-1 rounded text-zinc-300 outline-none">
-                                <span class="text-[10px] text-zinc-500">wks</span>
-                            </div>
-                            <span id="brush-due-date" class="text-[10px] font-black text-red-500 uppercase tracking-widest mb-3">Due: Never</span>
-                            <button onclick="updateCatTask('brushed')" class="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-bold py-2 rounded-lg">Mark Done</button>
-                        </div>
+            <!-- Form -->
+            <div id="meal-form-container" class="hidden bg-zinc-900 border border-zinc-800 p-5 rounded-2xl shadow-xl mb-6">
+                <h3 class="font-black text-zinc-100 mb-4">Plan a Meal</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Meal Name *</label>
+                        <input id="mf-name" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 outline-none focus:border-red-900" placeholder="e.g. Chicken Tacos">
                     </div>
-                </div>
-
-                 <!-- Cat Food & Archive -->
-                 <div class="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl shadow-sm mb-6">
-                    <div class="flex justify-between items-center mb-4 border-b border-zinc-800 pb-2">
-                        <h3 class="font-black text-zinc-100">Cat Food Info</h3>
-                        <div class="flex items-center gap-1">
-                            <span class="text-[10px] text-zinc-500">Lasts</span>
-                            <input type="number" id="cat-food-weeks" value="4" onchange="updateCatSettings()" class="w-10 bg-zinc-950 border border-zinc-700 text-center text-xs p-1 rounded text-zinc-300 outline-none">
-                            <span class="text-[10px] text-zinc-500">wks</span>
-                        </div>
-                    </div>
-
-                    <div class="mb-4">
-                        <span class="block text-xs font-bold text-zinc-400 uppercase mb-1">Next Bag Due</span>
-                        <span id="food-due-date" class="text-sm font-black text-red-500">Never</span>
-                    </div>
-
-                    <button onclick="toggleCatFoodForm()" class="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-bold py-3 rounded-xl mb-4 transition-colors">
-                        + Log Bought Food
-                    </button>
-
-                    <!-- Hidden Food Form -->
-                    <div id="cat-food-form" class="hidden bg-zinc-950 p-4 rounded-xl border border-zinc-800 mb-4 space-y-3">
-                        <input id="cf-brand" placeholder="Brand (e.g. Purina)" class="w-full p-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-100 outline-none">
-                        <input id="cf-flavor" placeholder="Flavor (e.g. Salmon)" class="w-full p-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-100 outline-none">
-                        <div class="flex gap-2">
-                            <button onclick="toggleCatFoodForm()" class="flex-1 bg-zinc-800 text-xs font-bold py-2 rounded-lg text-zinc-300">Cancel</button>
-                            <button onclick="saveCatFood()" class="flex-1 bg-red-900 hover:bg-red-800 text-xs font-bold py-2 rounded-lg text-zinc-100">Save Log</button>
-                        </div>
-                    </div>
-
-                    <h4 class="font-black text-xs text-zinc-500 uppercase tracking-widest mb-2 mt-6">Purchase Archive</h4>
-                    <div id="cat-food-archive" class="space-y-2 max-h-48 overflow-y-auto no-scrollbar"></div>
-                 </div>
-            </div>
-
-            <!-- HEALTH TAB -->
-            <div id="tab-health" class="hidden">
-                 <h2 class="text-2xl font-black tracking-tight mb-6">Health & Fitness</h2>
-                 
-                 <!-- Profile Selector -->
-                 <div class="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl shadow-sm mb-6">
-                     <div class="flex items-center gap-3 mb-2">
-                         <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">Active Profile</label>
-                     </div>
-                     <div class="flex gap-2">
-                        <select id="health-profile-select" onchange="changeHealthProfile()" class="flex-1 p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 font-bold outline-none focus:border-red-900">
-                            <!-- Populated via JS -->
-                        </select>
-                        <button onclick="editHealthProfile()" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 p-3 rounded-xl border border-zinc-700">
-                            <i class="ph-fill ph-pencil-simple"></i>
-                        </button>
-                        <button onclick="openNewProfileForm()" class="bg-zinc-100 text-zinc-950 px-4 font-black rounded-xl text-sm hover:bg-white">
-                            + New
-                        </button>
-                     </div>
-                 </div>
-
-                 <!-- Profile Form (Hidden) -->
-                 <div id="health-profile-form" class="hidden bg-zinc-900 border border-zinc-800 p-5 rounded-2xl mb-6 shadow-xl">
-                    <div class="flex justify-between items-center border-b border-zinc-800 pb-2 mb-4">
-                        <h3 id="hpf-title" class="font-black text-zinc-100">Profile Settings</h3>
-                        <button id="hpf-delete-btn" onclick="safeDelete('profile', document.getElementById('hpf-id').value)" class="text-red-500 hover:text-red-400 hidden">
-                            <i class="ph-fill ph-trash text-lg"></i>
-                        </button>
-                    </div>
-                    <input type="hidden" id="hpf-id">
-                    <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Name</label>
-                            <input id="hpf-name" class="w-full p-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-100 outline-none">
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Weight (lbs)</label>
-                                <input type="number" id="hpf-weight" class="w-full p-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-100 outline-none">
-                            </div>
-                            <div>
-                                <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Climate</label>
-                                <select id="hpf-climate" class="w-full p-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-100 outline-none">
-                                    <option class="bg-zinc-950" value="Normal">Normal</option>
-                                    <option class="bg-zinc-950" value="Hot/Dry">Hot/Dry</option>
-                                </select>
-                            </div>
+                            <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Date *</label>
+                            <input type="date" id="mf-date" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 outline-none focus:border-red-900">
                         </div>
                         <div>
-                            <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Activity Level</label>
-                            <select id="hpf-activity" class="w-full p-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-100 outline-none">
-                                <option class="bg-zinc-950" value="Sedentary">Sedentary (Little/No exercise)</option>
-                                <option class="bg-zinc-950" value="Light">Light (1-3 days/wk)</option>
-                                <option class="bg-zinc-950" value="Moderate">Moderate (3-5 days/wk)</option>
-                                <option class="bg-zinc-950" value="Active">Active (6-7 days/wk)</option>
+                            <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Type</label>
+                            <select id="mf-type" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 outline-none focus:border-red-900">
+                                <option value="Weekly Dinner">Weekly Dinner</option>
+                                <option value="Meal Prep">Meal Prep</option>
                             </select>
                         </div>
-                        <div class="flex gap-2 pt-2">
-                            <button onclick="document.getElementById('health-profile-form').classList.add('hidden')" class="flex-1 bg-zinc-800 py-2 rounded-lg font-bold text-zinc-300">Cancel</button>
-                            <button onclick="saveHealthProfile()" class="flex-1 bg-red-900 text-white py-2 rounded-lg font-bold">Save</button>
-                        </div>
                     </div>
-                 </div>
-
-                 <!-- Water Tracker -->
-                 <div id="water-tracker-section" class="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl shadow-sm mb-6 hidden">
-                     <div class="flex justify-between items-end mb-4">
-                         <div>
-                             <h3 class="font-black text-blue-400 flex items-center gap-2">
-                                <i class="ph-fill ph-drop"></i> Water Intake
-                             </h3>
-                             <span id="water-goal-text" class="text-[11px] font-bold text-zinc-500 uppercase tracking-widest">Goal: 0 oz</span>
-                         </div>
-                         <div class="text-right">
-                             <span id="water-current-text" class="text-3xl font-black text-zinc-100">0</span>
-                             <span class="text-sm font-bold text-zinc-500">oz today</span>
-                         </div>
-                     </div>
-                     <!-- Progress Bar -->
-                     <div class="w-full h-3 bg-zinc-950 rounded-full overflow-hidden mb-4 border border-zinc-800">
-                         <div id="water-progress-bar" class="h-full bg-blue-600 transition-all duration-500 w-0"></div>
-                     </div>
-                     <!-- Quick Add -->
-                     <div class="flex gap-2">
-                         <button onclick="addWater(8)" class="flex-1 bg-zinc-950 border border-blue-900/30 hover:bg-blue-900/20 text-blue-400 font-bold py-2 rounded-xl text-sm transition-colors">+ 8 oz</button>
-                         <button onclick="addWater(16)" class="flex-1 bg-zinc-950 border border-blue-900/30 hover:bg-blue-900/20 text-blue-400 font-bold py-2 rounded-xl text-sm transition-colors">+ 16 oz</button>
-                         <button onclick="addWater(24)" class="flex-1 bg-zinc-950 border border-blue-900/30 hover:bg-blue-900/20 text-blue-400 font-bold py-2 rounded-xl text-sm transition-colors">+ 24 oz</button>
-                     </div>
-                 </div>
-
-                 <!-- Workouts -->
-                 <div id="workout-section" class="hidden">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-black text-emerald-400 flex items-center gap-2">
-                            <i class="ph-fill ph-barbell"></i> Workouts
-                        </h3>
-                        <button onclick="toggleWorkoutForm()" class="bg-zinc-800 text-emerald-400 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-zinc-700">
-                            + Log
-                        </button>
-                    </div>
-
-                    <div id="workout-form" class="hidden bg-zinc-900 border border-emerald-900/30 p-4 rounded-xl mb-4">
-                        <input id="wo-name" placeholder="Workout Name (e.g. Swimming, Kettlebells)" class="w-full p-2 bg-zinc-950 border border-zinc-800 rounded-lg text-sm text-zinc-100 outline-none mb-3">
-                        <div class="grid grid-cols-4 gap-2 mb-3">
-                            <div class="col-span-1">
-                                <label class="text-[9px] font-bold text-zinc-500 uppercase block mb-1">Sets</label>
-                                <input type="number" id="wo-sets" class="w-full p-2 bg-zinc-950 border border-zinc-800 rounded-lg text-sm text-zinc-100 text-center outline-none">
-                            </div>
-                            <div class="col-span-1">
-                                <label class="text-[9px] font-bold text-zinc-500 uppercase block mb-1">Reps</label>
-                                <input type="number" id="wo-reps" class="w-full p-2 bg-zinc-950 border border-zinc-800 rounded-lg text-sm text-zinc-100 text-center outline-none">
-                            </div>
-                            <div class="col-span-1">
-                                <label class="text-[9px] font-bold text-zinc-500 uppercase block mb-1">Amt/Dist</label>
-                                <input type="number" step="0.1" id="wo-dist" class="w-full p-2 bg-zinc-950 border border-zinc-800 rounded-lg text-sm text-zinc-100 text-center outline-none">
-                            </div>
-                            <div class="col-span-1">
-                                <label class="text-[9px] font-bold text-zinc-500 uppercase block mb-1">Unit</label>
-                                <input id="wo-unit" placeholder="Lbs, Laps" class="w-full p-2 bg-zinc-950 border border-zinc-800 rounded-lg text-sm text-zinc-100 text-center outline-none">
-                            </div>
-                        </div>
-                        <div class="flex gap-2">
-                            <button onclick="toggleWorkoutForm()" class="flex-1 bg-zinc-950 text-xs font-bold py-2 rounded-lg text-zinc-400">Cancel</button>
-                            <button onclick="saveWorkout()" class="flex-1 bg-emerald-900 hover:bg-emerald-800 text-xs font-bold py-2 rounded-lg text-white">Save Log</button>
+                    <div>
+                        <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Repeat (Optional)</label>
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm text-zinc-400">Every</span>
+                            <input type="number" id="mf-repeat" min="1" class="w-16 p-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-100 text-center outline-none focus:border-red-900">
+                            <span class="text-sm text-zinc-400">weeks</span>
                         </div>
                     </div>
 
-                    <div id="workout-list" class="space-y-2"></div>
-                 </div>
+                    <!-- Searchable Inventory Linking -->
+                    <div class="border-t border-zinc-800 pt-4 mt-2">
+                        <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-2 block flex justify-between items-center">
+                            Link Ingredients
+                            <span class="text-[9px] bg-zinc-800 px-2 py-0.5 rounded text-zinc-400">Optional</span>
+                        </label>
+                        <input type="text" id="mf-ingredient-search" onkeyup="filterIngredients()" placeholder="Search inventory..." class="w-full p-2 mb-2 bg-zinc-950 border border-zinc-800 rounded-lg text-sm text-zinc-100 outline-none focus:border-red-900">
+                        <div id="mf-ingredients-list" class="max-h-48 overflow-y-auto bg-zinc-950 border border-zinc-800 p-2 rounded-xl space-y-1 no-scrollbar">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <div class="flex gap-3 pt-2">
+                        <button onclick="toggleMealForm()" class="flex-1 bg-zinc-800 text-zinc-300 py-3 rounded-xl font-bold hover:bg-zinc-700 transition-colors">Cancel</button>
+                        <button onclick="saveMeal()" class="flex-1 bg-red-900 text-zinc-100 py-3 rounded-xl font-bold hover:bg-red-800 transition-colors">Save Meal</button>
+                    </div>
+                </div>
             </div>
 
-        </main>
+            <!-- Lists -->
+            <div class="space-y-6">
+                <div>
+                    <h3 class="text-sm font-black text-zinc-400 uppercase tracking-widest mb-3 flex items-center gap-2 border-b border-zinc-800 pb-2">
+                        <i class="ph-fill ph-moon text-indigo-400"></i> Weekly Dinners
+                    </h3>
+                    <div id="meals-dinner-list" class="space-y-3"></div>
+                </div>
+                <div>
+                    <h3 class="text-sm font-black text-zinc-400 uppercase tracking-widest mb-3 flex items-center gap-2 border-b border-zinc-800 pb-2">
+                        <i class="ph-fill ph-package text-emerald-500"></i> Meal Prep
+                    </h3>
+                    <div id="meals-prep-list" class="space-y-3"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CHORES (CAT) TAB -->
+        <div id="tab-chores" class="hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-black tracking-tight flex items-center gap-3">
+                    Cat Command <i class="ph-fill ph-cat text-red-500"></i>
+                </h2>
+                <button onclick="toggleCatSettings()" class="bg-zinc-800 text-zinc-300 px-3 py-2 rounded-xl font-black text-sm uppercase tracking-widest hover:bg-zinc-700 shadow-lg flex items-center gap-2">
+                    <i class="ph-fill ph-gear"></i> Settings
+                </button>
+            </div>
+            
+            <!-- Litter Box -->
+            <div class="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl shadow-sm mb-6">
+                <h3 class="font-black text-zinc-100 mb-4 border-b border-zinc-800 pb-2">Litter Box</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <button onclick="updateCatTask('litterPicked')" class="bg-zinc-950 border border-zinc-800 hover:border-red-900/50 p-4 rounded-xl flex flex-col items-center group transition-colors">
+                        <i class="ph-fill ph-shovel text-2xl text-zinc-500 group-hover:text-red-400 mb-2 transition-colors"></i>
+                        <span class="font-bold text-zinc-300">Scooped</span>
+                        <span id="litter-scoop-date" class="text-[10px] font-black text-zinc-500 uppercase tracking-widest mt-1">Never</span>
+                    </button>
+                    <button onclick="updateCatTask('litterChanged')" class="bg-zinc-950 border border-zinc-800 hover:border-red-900/50 p-4 rounded-xl flex flex-col items-center group transition-colors">
+                        <i class="ph-fill ph-sparkle text-2xl text-zinc-500 group-hover:text-red-400 mb-2 transition-colors"></i>
+                        <span class="font-bold text-zinc-300">Changed</span>
+                        <span id="litter-change-date" class="text-[10px] font-black text-zinc-500 uppercase tracking-widest mt-1">Never</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Grooming -->
+            <div class="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl shadow-sm mb-6">
+                <h3 class="font-black text-zinc-100 mb-4 border-b border-zinc-800 pb-2">Grooming</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-zinc-950 border border-zinc-800 p-4 rounded-xl flex flex-col items-center relative">
+                        <span class="font-bold text-zinc-300 mb-1">Claws Clipped</span>
+                        <span id="claws-due-date" class="text-[10px] font-black text-red-500 uppercase tracking-widest mb-3 mt-2">Due: Never</span>
+                        <button onclick="updateCatTask('clawsClipped')" class="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-bold py-2 rounded-lg">Mark Done</button>
+                    </div>
+                    <div class="bg-zinc-950 border border-zinc-800 p-4 rounded-xl flex flex-col items-center relative">
+                        <span class="font-bold text-zinc-300 mb-1">Brushed</span>
+                        <span id="brush-due-date" class="text-[10px] font-black text-red-500 uppercase tracking-widest mb-3 mt-2">Due: Never</span>
+                        <button onclick="updateCatTask('brushed')" class="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-bold py-2 rounded-lg">Mark Done</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cat Food & Archive -->
+            <div class="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl shadow-sm mb-6">
+                <div class="flex justify-between items-center mb-4 border-b border-zinc-800 pb-2">
+                    <h3 class="font-black text-zinc-100">Cat Food Info</h3>
+                </div>
+
+                <div class="mb-4">
+                    <p class="text-sm text-zinc-400 font-medium">Next bag due roughly around:</p>
+                    <p id="food-due-date" class="text-lg font-black text-red-500 mt-1">Never</p>
+                </div>
+
+                <button onclick="toggleCatFoodForm()" class="w-full bg-zinc-800 text-zinc-300 py-3 rounded-xl font-bold hover:bg-zinc-700 transition-colors flex items-center justify-center gap-2 mb-4">
+                    <i class="ph ph-plus-bold"></i> Bought Food
+                </button>
+
+                <div id="cat-food-form" class="hidden bg-zinc-950 border border-zinc-800 p-4 rounded-xl mb-4">
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Brand</label>
+                            <input id="cf-brand" class="w-full p-2 bg-zinc-900 border border-zinc-700 rounded-lg text-sm text-zinc-100 outline-none focus:border-red-900" placeholder="e.g. Purina">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Flavor</label>
+                            <input id="cf-flavor" class="w-full p-2 bg-zinc-900 border border-zinc-700 rounded-lg text-sm text-zinc-100 outline-none focus:border-red-900" placeholder="e.g. Salmon & Rice">
+                        </div>
+                        <div class="flex gap-2 pt-2">
+                            <button onclick="toggleCatFoodForm()" class="flex-1 bg-zinc-800 text-xs font-bold py-2 rounded-lg text-zinc-300 hover:bg-zinc-700">Cancel</button>
+                            <button onclick="saveCatFood()" class="flex-1 bg-red-900 text-xs font-bold py-2 rounded-lg text-zinc-100 hover:bg-red-800">Save Log</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <h4 class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Food Archive</h4>
+                    <div id="cat-food-archive" class="space-y-2 max-h-48 overflow-y-auto pr-1 no-scrollbar">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- HEALTH TAB -->
+        <div id="tab-health" class="hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-black tracking-tight">Health</h2>
+            </div>
+
+            <!-- Profile Selector -->
+            <div class="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl shadow-sm mb-6">
+                <div class="flex justify-between items-center">
+                    <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">Active Health Profile</label>
+                    <button onclick="toggleProfileForm(false)" class="text-[10px] font-bold text-zinc-100 bg-zinc-950 border border-zinc-800 px-2 py-1 rounded-md hover:bg-zinc-800 flex items-center gap-1">
+                        <i class="ph ph-plus"></i> New Profile
+                    </button>
+                </div>
+                <div class="flex gap-2 mt-2">
+                    <select id="health-profile-select" onchange="switchProfile()" class="flex-1 p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 font-bold outline-none focus:border-red-900">
+                        <option value="" class="bg-zinc-900 text-zinc-100">Select a Profile...</option>
+                        <!-- Populated dynamically. Class bg-zinc-900 is crucial for visibility -->
+                    </select>
+                    <button onclick="editActiveProfile()" class="px-4 bg-zinc-800 text-zinc-300 rounded-xl hover:bg-zinc-700" title="Edit Profile"><i class="ph-fill ph-pencil-simple text-lg"></i></button>
+                </div>
+            </div>
+
+            <!-- Warning if no profile -->
+            <div id="health-no-profile" class="text-center p-8 bg-zinc-900 border border-zinc-800 rounded-2xl">
+                <i class="ph-fill ph-user text-4xl text-zinc-600 mb-3"></i>
+                <p class="text-zinc-400 font-medium text-sm">Select or create a profile to track water and workouts.</p>
+            </div>
+
+            <!-- Health Trackers (Visible when profile selected) -->
+            <div id="health-trackers" class="hidden space-y-6">
+                
+                <!-- Water Tracker -->
+                <div class="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl shadow-sm">
+                    <div class="flex justify-between items-end mb-4 border-b border-zinc-800 pb-3">
+                        <div>
+                            <h3 class="font-black text-zinc-100 flex items-center gap-2"><i class="ph-fill ph-drop text-blue-500"></i> Hydration</h3>
+                            <p id="water-goal-text" class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">Goal: -- oz / day</p>
+                        </div>
+                        <div class="text-right">
+                            <span id="water-today-total" class="text-2xl font-black text-blue-400">0</span>
+                            <span class="text-xs text-zinc-500 font-bold">oz today</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-2 mb-4">
+                        <button onclick="logWater(8)" class="flex-1 bg-zinc-950 border border-zinc-800 py-2 rounded-xl text-zinc-300 font-bold text-sm hover:border-blue-900 hover:text-blue-400 transition-colors">+ 8 oz</button>
+                        <button onclick="logWater(16)" class="flex-1 bg-zinc-950 border border-zinc-800 py-2 rounded-xl text-zinc-300 font-bold text-sm hover:border-blue-900 hover:text-blue-400 transition-colors">+ 16 oz</button>
+                        <button onclick="logWater(32)" class="flex-1 bg-zinc-950 border border-zinc-800 py-2 rounded-xl text-zinc-300 font-bold text-sm hover:border-blue-900 hover:text-blue-400 transition-colors">+ 32 oz</button>
+                    </div>
+
+                    <!-- Water Graph -->
+                    <div>
+                        <span class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-2">Last 7 Days</span>
+                        <div id="water-chart" class="h-24 flex items-end gap-1.5 justify-between">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Workout Tracker -->
+                <div class="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl shadow-sm">
+                    <div class="flex justify-between items-center mb-4 border-b border-zinc-800 pb-3">
+                        <h3 class="font-black text-zinc-100 flex items-center gap-2"><i class="ph-fill ph-barbell text-red-500"></i> Workouts</h3>
+                        <button onclick="toggleWorkoutForm()" class="bg-zinc-800 text-zinc-300 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-zinc-700">Log Workout</button>
+                    </div>
+
+                    <div id="workout-form" class="hidden bg-zinc-950 border border-zinc-800 p-4 rounded-xl mb-4">
+                        <div class="space-y-3">
+                            <div>
+                                <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Workout Type</label>
+                                <input id="wo-type" placeholder="e.g. Weightlifting, Swimming, Running" class="w-full p-2 bg-zinc-900 border border-zinc-700 rounded-lg text-sm text-zinc-100 outline-none focus:border-red-900">
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Duration</label>
+                                    <input id="wo-duration" placeholder="e.g. 45 mins" class="w-full p-2 bg-zinc-900 border border-zinc-700 rounded-lg text-sm text-zinc-100 outline-none focus:border-red-900">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Sets (Optional)</label>
+                                    <input type="number" id="wo-sets" placeholder="e.g. 3" class="w-full p-2 bg-zinc-900 border border-zinc-700 rounded-lg text-sm text-zinc-100 outline-none focus:border-red-900">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Reps (Optional)</label>
+                                    <input type="number" id="wo-reps" placeholder="e.g. 10" class="w-full p-2 bg-zinc-900 border border-zinc-700 rounded-lg text-sm text-zinc-100 outline-none focus:border-red-900">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Amount/Distance</label>
+                                    <input id="wo-amount" placeholder="e.g. 15 lbs, 2 laps" class="w-full p-2 bg-zinc-900 border border-zinc-700 rounded-lg text-sm text-zinc-100 outline-none focus:border-red-900">
+                                </div>
+                            </div>
+                            <div class="flex gap-2 pt-2">
+                                <button onclick="toggleWorkoutForm()" class="flex-1 bg-zinc-800 text-xs font-bold py-2 rounded-lg text-zinc-300 hover:bg-zinc-700">Cancel</button>
+                                <button onclick="saveWorkout()" class="flex-1 bg-red-900 text-xs font-bold py-2 rounded-lg text-zinc-100 hover:bg-red-800">Save Log</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Workout Graph -->
+                    <div class="mb-5">
+                        <span class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-2 flex justify-between">
+                            <span>Activity Log (Last 7 Days)</span>
+                            <span id="workout-total-mins" class="text-zinc-400">0 mins total</span>
+                        </span>
+                        <div id="workout-chart" class="h-20 flex items-end gap-1.5 justify-between border-b border-zinc-800 pb-1">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <div id="workout-history" class="space-y-2 max-h-48 overflow-y-auto pr-1 no-scrollbar">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- SAFE DELETE MODAL -->
+    <div id="safe-delete-modal" class="hidden fixed inset-0 z-[300] bg-zinc-950/95 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="w-full max-w-sm bg-zinc-900 border border-zinc-700 p-6 rounded-2xl shadow-2xl flex flex-col items-center text-center">
+            <div class="w-16 h-16 bg-red-950 rounded-full flex items-center justify-center mb-4">
+                <i class="ph-fill ph-warning-circle text-3xl text-red-500"></i>
+            </div>
+            <h3 class="text-xl font-black text-zinc-100 mb-2">Are you sure?</h3>
+            <p id="safe-delete-text" class="text-sm text-zinc-400 mb-6 font-medium">You are about to delete this item. This cannot be undone.</p>
+            <div class="flex w-full gap-3">
+                <button onclick="cancelDelete()" class="flex-1 bg-zinc-800 text-zinc-300 py-3 rounded-xl font-bold hover:bg-zinc-700 transition-colors">Cancel</button>
+                <button onclick="confirmDelete()" class="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold hover:bg-red-700 transition-colors shadow-lg shadow-red-900/50">Yes, Delete</button>
+            </div>
+        </div>
     </div>
 
     <!-- DATA MANAGER MODAL -->
     <div id="data-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-zinc-950/90 backdrop-blur-sm p-4">
         <div class="w-full max-w-sm bg-zinc-900 border border-zinc-700 p-6 rounded-2xl shadow-2xl">
-            <h3 class="font-black text-xl text-zinc-100 mb-4 flex items-center gap-2">
-                <i class="ph-fill ph-database text-zinc-400"></i> Data Management
-            </h3>
-            <p class="text-xs text-zinc-400 mb-6 font-medium">Backup your entire Command Center state to a file, or restore from a previous backup.</p>
-            
-            <div class="space-y-3">
-                <button onclick="exportData()" class="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-bold py-3 rounded-xl flex items-center justify-center gap-2 border border-zinc-700 transition-colors">
-                    <i class="ph-fill ph-export"></i> Export Backup (.json)
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-black text-xl text-zinc-100">Data Manager</h3>
+                <button onclick="toggleDataModal()" class="text-zinc-500 hover:text-zinc-300"><i class="ph-fill ph-x-circle text-2xl"></i></button>
+            </div>
+            <div class="space-y-4">
+                <button onclick="exportData()" class="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-100 p-4 rounded-xl flex items-center justify-between transition-colors border border-zinc-700">
+                    <div class="flex flex-col text-left">
+                        <span class="font-bold">Backup Data</span>
+                        <span class="text-[10px] text-zinc-400 uppercase tracking-widest mt-1">Download as JSON</span>
+                    </div>
+                    <i class="ph-fill ph-download-simple text-xl text-zinc-400"></i>
                 </button>
-                <div class="relative w-full">
-                    <input type="file" id="import-file" accept=".json" onchange="importData(event)" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
-                    <button class="w-full bg-red-950/30 hover:bg-red-900/50 text-red-400 font-bold py-3 rounded-xl flex items-center justify-center gap-2 border border-red-900/50 transition-colors pointer-events-none">
-                        <i class="ph-fill ph-import"></i> Restore from Backup
+                <div class="relative">
+                    <input type="file" id="import-file" class="hidden" accept=".json" onchange="importData(event)">
+                    <button onclick="document.getElementById('import-file').click()" class="w-full bg-zinc-950 hover:bg-zinc-800 text-zinc-100 p-4 rounded-xl flex items-center justify-between transition-colors border border-zinc-800">
+                        <div class="flex flex-col text-left">
+                            <span class="font-bold">Restore Backup</span>
+                            <span class="text-[10px] text-red-500 font-bold uppercase tracking-widest mt-1">Overwrites current data!</span>
+                        </div>
+                        <i class="ph-fill ph-upload-simple text-xl text-zinc-500"></i>
                     </button>
                 </div>
             </div>
-            
-            <button onclick="toggleDataManager()" class="w-full mt-6 bg-transparent text-zinc-500 font-bold py-2 rounded-xl hover:text-zinc-300">Close</button>
         </div>
     </div>
 
-    <!-- SAFE DELETE MODAL -->
-    <div id="safe-delete-modal" class="hidden fixed inset-0 z-[70] flex items-center justify-center bg-zinc-950/95 backdrop-blur-md p-4">
-        <div class="w-full max-w-sm bg-zinc-900 border border-red-900/50 p-6 rounded-2xl shadow-2xl text-center">
-            <div class="w-16 h-16 bg-red-950/50 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-900/50">
-                <i class="ph-fill ph-trash text-3xl text-red-500"></i>
+    <!-- COOK TIMES INFO MODAL -->
+    <div id="cook-times-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-zinc-950/95 backdrop-blur-md p-4">
+        <div class="w-full max-w-md bg-zinc-900 border border-zinc-700 p-6 rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+            <div class="flex justify-between items-center mb-4 border-b border-zinc-800 pb-2">
+                <h3 class="font-black text-xl text-zinc-100 flex items-center gap-2">
+                    <i class="ph-fill ph-cooking-pot text-red-500"></i> Cook Times
+                </h3>
+                <button onclick="toggleCookTimes()" class="text-zinc-500 hover:text-zinc-300"><i class="ph-fill ph-x-circle text-2xl"></i></button>
             </div>
-            <h3 class="font-black text-xl text-zinc-100 mb-2">Are you sure?</h3>
-            <p id="safe-delete-text" class="text-sm text-zinc-400 mb-6 font-medium">You are about to delete this item. This cannot be undone.</p>
+            
+            <div class="bg-zinc-950 p-4 rounded-xl border border-zinc-800 mb-4 space-y-3 flex-shrink-0">
+                <input type="hidden" id="ct-id">
+                <div>
+                    <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Food Name</label>
+                    <input id="ct-name" placeholder="e.g. Chicken Breast" class="w-full p-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-100 outline-none focus:border-red-900">
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Qty/Size</label>
+                        <input id="ct-qty" placeholder="e.g. 1 lb" class="w-full p-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-100 outline-none focus:border-red-900">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Time</label>
+                        <input id="ct-time" placeholder="e.g. 20m" class="w-full p-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-100 outline-none focus:border-red-900">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Method</label>
+                        <input id="ct-method" placeholder="e.g. Bake 400F" class="w-full p-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-100 outline-none focus:border-red-900">
+                    </div>
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button onclick="clearCookTimeForm()" class="flex-1 bg-zinc-800 text-xs font-bold py-2 rounded-lg text-zinc-300 hover:bg-zinc-700 transition-colors">Clear</button>
+                    <button onclick="saveCookTime()" class="flex-1 bg-red-900 hover:bg-red-800 text-xs font-bold py-2 rounded-lg text-zinc-100 transition-colors">Save Info</button>
+                </div>
+            </div>
+
+            <div id="cook-times-list" class="flex-1 overflow-y-auto space-y-2 pr-1 no-scrollbar">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- TIMER SETUP MODAL -->
+    <div id="timer-setup-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-zinc-950/95 backdrop-blur-md p-4">
+        <div class="w-full max-w-sm bg-zinc-900 border border-zinc-700 p-6 rounded-2xl shadow-2xl">
+            <h3 class="font-black text-xl text-zinc-100 mb-4 border-b border-zinc-800 pb-2 flex items-center gap-2">
+                <i class="ph-fill ph-timer text-zinc-400"></i> Set Timer
+            </h3>
+            <div class="flex items-center justify-center gap-4 mb-6">
+                <div class="text-center">
+                    <input type="number" id="timer-mins" min="0" value="15" class="w-20 bg-zinc-950 border border-zinc-700 text-center text-3xl font-black p-3 rounded-xl text-zinc-100 outline-none focus:border-red-900">
+                    <span class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mt-2">Minutes</span>
+                </div>
+                <span class="text-3xl font-black text-zinc-600 pb-5">:</span>
+                <div class="text-center">
+                    <input type="number" id="timer-secs" min="0" max="59" value="00" class="w-20 bg-zinc-950 border border-zinc-700 text-center text-3xl font-black p-3 rounded-xl text-zinc-100 outline-none focus:border-red-900">
+                    <span class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mt-2">Seconds</span>
+                </div>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="toggleTimerSetup()" class="flex-1 bg-zinc-800 text-zinc-300 py-3 rounded-xl font-bold hover:bg-zinc-700 transition-colors">Cancel</button>
+                <button onclick="startTimer()" class="flex-1 bg-zinc-100 text-zinc-950 py-3 rounded-xl font-black hover:bg-white transition-colors">Start</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CAT SETTINGS MODAL -->
+    <div id="cat-settings-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-zinc-950/95 backdrop-blur-md p-4">
+        <div class="w-full max-w-sm bg-zinc-900 border border-zinc-700 p-6 rounded-2xl shadow-2xl">
+            <h3 class="font-black text-xl text-zinc-100 mb-4 border-b border-zinc-800 pb-2 flex items-center gap-2">
+                <i class="ph-fill ph-gear text-zinc-400"></i> Cat Care Settings
+            </h3>
+            
+            <div class="space-y-4 mb-6">
+                <div class="flex justify-between items-center bg-zinc-950 p-3 rounded-xl border border-zinc-800">
+                    <span class="font-bold text-zinc-300 text-sm">Claw Clipping</span>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-zinc-500">Every</span>
+                        <input type="number" id="setting-claws" min="1" class="w-12 bg-zinc-900 border border-zinc-700 text-center p-1.5 rounded-lg text-zinc-100 outline-none focus:border-red-900">
+                        <span class="text-xs text-zinc-500">wks</span>
+                    </div>
+                </div>
+                <div class="flex justify-between items-center bg-zinc-950 p-3 rounded-xl border border-zinc-800">
+                    <span class="font-bold text-zinc-300 text-sm">Brushing</span>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-zinc-500">Every</span>
+                        <input type="number" id="setting-brush" min="1" class="w-12 bg-zinc-900 border border-zinc-700 text-center p-1.5 rounded-lg text-zinc-100 outline-none focus:border-red-900">
+                        <span class="text-xs text-zinc-500">wks</span>
+                    </div>
+                </div>
+                <div class="flex justify-between items-center bg-zinc-950 p-3 rounded-xl border border-zinc-800">
+                    <span class="font-bold text-zinc-300 text-sm">Food Bag Lasts</span>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-zinc-500">About</span>
+                        <input type="number" id="setting-food" min="1" class="w-12 bg-zinc-900 border border-zinc-700 text-center p-1.5 rounded-lg text-zinc-100 outline-none focus:border-red-900">
+                        <span class="text-xs text-zinc-500">wks</span>
+                    </div>
+                </div>
+            </div>
             
             <div class="flex gap-3">
-                <button onclick="cancelDelete()" class="flex-1 bg-zinc-800 text-zinc-300 py-3 rounded-xl font-bold hover:bg-zinc-700 transition-colors">Cancel</button>
-                <button onclick="confirmDelete()" class="flex-1 bg-red-600 text-white py-3 rounded-xl font-black uppercase tracking-wider hover:bg-red-500 transition-colors shadow-lg shadow-red-900/20">Delete</button>
+                <button onclick="toggleCatSettings()" class="flex-1 bg-zinc-800 text-zinc-300 py-3 rounded-xl font-bold hover:bg-zinc-700 transition-colors">Cancel</button>
+                <button onclick="saveCatSettings()" class="flex-1 bg-red-900 text-zinc-100 py-3 rounded-xl font-bold hover:bg-red-800 transition-colors">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PROFILE EDIT/CREATE MODAL -->
+    <div id="profile-form-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-zinc-950/95 backdrop-blur-md p-4">
+        <div class="w-full max-w-sm bg-zinc-900 border border-zinc-700 p-6 rounded-2xl shadow-2xl">
+            <div class="flex justify-between items-center mb-4 border-b border-zinc-800 pb-2">
+                <h3 id="profile-modal-title" class="font-black text-xl text-zinc-100 flex items-center gap-2">New Profile</h3>
+                <button onclick="toggleProfileForm()" class="text-zinc-500 hover:text-zinc-300"><i class="ph-fill ph-x-circle text-2xl"></i></button>
+            </div>
+            <div class="space-y-3 mb-4">
+                <input type="hidden" id="pf-id">
+                <div>
+                    <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Name *</label>
+                    <input id="pf-name" class="w-full p-2 bg-zinc-950 border border-zinc-800 rounded-lg text-sm text-zinc-100 outline-none focus:border-red-900">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Weight (lbs)</label>
+                        <input type="number" id="pf-weight" class="w-full p-2 bg-zinc-950 border border-zinc-800 rounded-lg text-sm text-zinc-100 outline-none focus:border-red-900">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Activity Level</label>
+                        <select id="pf-activity" class="w-full p-2 bg-zinc-950 border border-zinc-800 rounded-lg text-sm text-zinc-100 outline-none focus:border-red-900">
+                            <option value="sedentary">Low / Sedentary</option>
+                            <option value="moderate">Moderate</option>
+                            <option value="active">High / Active</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Climate</label>
+                    <select id="pf-climate" class="w-full p-2 bg-zinc-950 border border-zinc-800 rounded-lg text-sm text-zinc-100 outline-none focus:border-red-900">
+                        <option value="normal">Normal</option>
+                        <option value="hot">Hot / Arid</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button id="pf-delete-btn" onclick="deleteActiveProfile()" class="hidden bg-zinc-950 border border-zinc-800 text-red-500 px-3 py-3 rounded-xl font-bold hover:bg-red-950 transition-colors"><i class="ph-fill ph-trash text-lg"></i></button>
+                <button onclick="saveProfile()" class="flex-1 bg-red-900 text-zinc-100 py-3 rounded-xl font-bold hover:bg-red-800 transition-colors">Save Profile</button>
             </div>
         </div>
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // 🚨 FIREBASE CONFIGURATION (LIVE SYNC) 🚨
+        // 🔥 FIREBASE CONFIGURATION (LIVE SYNC) 🔥
         const firebaseConfig = {
-          apiKey: "AIzaSyCFm_LFV2pur5mKf4RfxFdyvRumo-xMuL0",
-          authDomain: "home-command-center-4a250.firebaseapp.com",
-          projectId: "home-command-center-4a250",
-          storageBucket: "home-command-center-4a250.firebasestorage.app",
-          messagingSenderId: "650433556310",
-          appId: "1:650433556310:web:20e65ae7e39f98a7ec30f7"
+            apiKey: "AIzaSyCFm_LFV2pur5mKf4RfxFdyvRumo-xMuL0",
+            authDomain: "home-command-center-4a250.firebaseapp.com",
+            projectId: "home-command-center-4a250",
+            storageBucket: "home-command-center-4a250.firebasestorage.app",
         };
 
         const app = initializeApp(firebaseConfig);
@@ -531,153 +647,121 @@
         const docRef = doc(db, "command_center", "home_data");
 
         // STATE MANAGEMENT
-        const defaultState = {
+        let state = {
             pin: "6969",
             groceries: [],
             todos: [],
             meals: [],
+            cookTimes: [],
             chores: {
                 litterPicked: null, litterChanged: null, clawsClipped: null, brushed: null,
                 settings: { clawsWeeks: 4, brushWeeks: 1, foodWeeks: 4 }
             },
             catFoodArchive: [],
-            profiles: [] // {id, name, weight, climate, activity, waterLogs: [{date, oz}], workouts: []}
+            profiles: [],
+            activeProfileId: null
         };
 
-        let state = JSON.parse(JSON.stringify(defaultState));
-        let isAuthenticated = false;
-        let unsubscribe = null;
-        let activeProfileId = null;
-
-        // SAFE DELETE STATE
+        // UI & DB SYNC
+        let isDBLoaded = false;
         let pendingDelete = { type: null, id: null };
+        let activeTab = 'groceries';
 
-        // UTILITIES
-        function fireConfetti() {
-            confetti({ particleCount: 100, spread: 70, origin: { y: 0.8 }, colors: ['#991b1b', '#10b981', '#0ea5e9', '#d4d4d8'] });
-        }
-
-        function getChicagoTime(isoString = null) {
-            const d = isoString ? new Date(isoString) : new Date();
-            return new Date(d.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
-        }
-
+        // HELPER FUNCTIONS (Central Time Forced)
         function formatDisplayDate(isoString) {
             if (!isoString) return 'Never';
-            return getChicagoTime(isoString).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            return new Date(isoString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/Chicago' });
         }
 
-        // CATEGORY COLOR HASHING
-        function getCategoryColors(category) {
-            const cat = (category || 'Other').toLowerCase().trim();
-            if (cat.includes('fruit')) return { bg: 'bg-pink-950', text: 'text-pink-400', border: 'border-pink-900/50' };
-            if (cat.includes('veg') || cat.includes('produce')) return { bg: 'bg-emerald-950', text: 'text-emerald-400', border: 'border-emerald-900/50' };
-            if (cat.includes('meat') || cat.includes('poultry')) return { bg: 'bg-red-950', text: 'text-red-400', border: 'border-red-900/50' };
-            if (cat.includes('bread') || cat.includes('grain')) return { bg: 'bg-amber-950', text: 'text-amber-400', border: 'border-amber-900/50' };
-            if (cat.includes('bev') || cat.includes('drink')) return { bg: 'bg-blue-950', text: 'text-blue-400', border: 'border-blue-900/50' };
-            if (cat.includes('snack')) return { bg: 'bg-orange-950', text: 'text-orange-400', border: 'border-orange-900/50' };
-            if (cat.includes('dip') || cat.includes('sauce') || cat.includes('condiment')) return { bg: 'bg-purple-950', text: 'text-purple-400', border: 'border-purple-900/50' };
-            if (cat.includes('dairy') || cat.includes('egg')) return { bg: 'bg-yellow-950', text: 'text-yellow-400', border: 'border-yellow-900/50' };
-            if (cat.includes('pantry')) return { bg: 'bg-stone-900', text: 'text-stone-400', border: 'border-stone-800' };
+        function calculateNextDue(lastDateIso, weeks) {
+            if (!lastDateIso || !weeks) return 'Due: Never';
+            const d = new Date(lastDateIso);
+            d.setDate(d.getDate() + (weeks * 7));
+            const now = new Date();
+            const diffTime = d - now;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             
-            // Hash unknown categories
-            let hash = 0;
-            for (let i = 0; i < cat.length; i++) hash = cat.charCodeAt(i) + ((hash << 5) - hash);
-            const colors = [
-                { bg: 'bg-indigo-950', text: 'text-indigo-400', border: 'border-indigo-900/50' },
-                { bg: 'bg-cyan-950', text: 'text-cyan-400', border: 'border-cyan-900/50' },
-                { bg: 'bg-teal-950', text: 'text-teal-400', border: 'border-teal-900/50' },
-                { bg: 'bg-fuchsia-950', text: 'text-fuchsia-400', border: 'border-fuchsia-900/50' },
-                { bg: 'bg-rose-950', text: 'text-rose-400', border: 'border-rose-900/50' }
-            ];
-            return colors[Math.abs(hash) % colors.length];
+            if (diffDays < 0) return `Due: <span class="text-red-500 font-black animate-pulse">OVERDUE</span>`;
+            if (diffDays === 0) return `Due: <span class="text-amber-500 font-black">TODAY</span>`;
+            if (diffDays <= 3) return `Due: <span class="text-amber-500 font-bold">in ${diffDays} days</span>`;
+            return `Due: <span class="text-zinc-400 font-medium">${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/Chicago' })}</span>`;
         }
 
-        // DATABASE SYNC
-        async function syncStateToDB() {
-            if (!isAuthenticated) return;
-            try { await setDoc(docRef, state); } 
-            catch (e) { console.error("Save error:", e); }
-        }
-
-        function setupLiveSync() {
-            if (unsubscribe) unsubscribe();
-            unsubscribe = onSnapshot(docRef, (doc) => {
-                if (doc.exists()) {
-                    const data = doc.data();
-                    state = { ...defaultState, ...data };
-                    
-                    // Deep merge objects to avoid missing keys
-                    if(data.chores) state.chores = { ...defaultState.chores, ...data.chores };
-                    if(data.chores?.settings) state.chores.settings = { ...defaultState.chores.settings, ...data.chores.settings };
-                    
-                    renderAll();
-                } else {
-                    syncStateToDB(); // Init document if it doesn't exist
-                }
+        function fireConfetti() {
+            confetti({
+                particleCount: 80, spread: 60, origin: { y: 0.9 },
+                colors: ['#7f1d1d', '#10b981', '#06b6d4', '#e4e4e7'], zIndex: 1000
             });
         }
 
-        // AUTHENTICATION
-        document.getElementById('auth-form').addEventListener('submit', (e) => {
-            e.preventDefault();
+        window.checkPin = function() {
             const input = document.getElementById('pin-input').value;
-            if (input === state.pin || input === "6969") {
-                isAuthenticated = true;
+            if (input === state.pin) {
                 document.getElementById('auth-screen').classList.add('hidden');
-                document.getElementById('main-app').classList.remove('hidden');
-                setupLiveSync();
+                document.getElementById('main-header').classList.remove('hidden');
+                document.getElementById('main-nav').classList.remove('hidden');
+                document.getElementById('main-content').classList.remove('hidden');
                 document.getElementById('pin-input').value = '';
-                document.getElementById('auth-error').innerText = '';
+                document.getElementById('pin-error').classList.add('hidden');
+                renderAll();
             } else {
-                document.getElementById('auth-error').innerText = 'Incorrect PIN';
+                document.getElementById('pin-error').classList.remove('hidden');
             }
-        });
-
-        window.lockApp = function() {
-            isAuthenticated = false;
-            if (unsubscribe) unsubscribe();
-            document.getElementById('auth-screen').classList.remove('hidden');
-            document.getElementById('main-app').classList.add('hidden');
         };
 
-        // NAVIGATION
+        window.lockApp = function() {
+            document.getElementById('auth-screen').classList.remove('hidden');
+            document.getElementById('main-header').classList.add('hidden');
+            document.getElementById('main-nav').classList.add('hidden');
+            document.getElementById('main-content').classList.add('hidden');
+        };
+
+        function syncStateToDB() {
+            if (!isDBLoaded) return;
+            setDoc(docRef, state).catch(e => console.error("Error saving:", e));
+        }
+
+        onSnapshot(docRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                state = { ...state, ...data, chores: { ...state.chores, ...(data.chores || {}) } };
+            }
+            isDBLoaded = true;
+            renderAll();
+        });
+
         window.switchTab = function(tabId) {
             ['groceries', 'todos', 'meals', 'chores', 'health'].forEach(t => {
                 document.getElementById(`tab-${t}`).classList.add('hidden');
-                const btn = document.getElementById(`tab-btn-${t}`);
-                btn.classList.remove('border-red-700', 'text-red-500');
-                btn.classList.add('border-transparent', 'text-zinc-500');
+                document.getElementById(`nav-${t}`).classList.remove('text-zinc-100', 'border-red-900');
+                document.getElementById(`nav-${t}`).classList.add('text-zinc-500', 'border-transparent');
             });
             document.getElementById(`tab-${tabId}`).classList.remove('hidden');
-            const activeBtn = document.getElementById(`tab-btn-${tabId}`);
-            activeBtn.classList.remove('border-transparent', 'text-zinc-500');
-            activeBtn.classList.add('border-red-700', 'text-red-500');
-            renderAll();
+            document.getElementById(`nav-${tabId}`).classList.add('text-zinc-100', 'border-red-900');
+            document.getElementById(`nav-${tabId}`).classList.remove('text-zinc-500', 'border-transparent');
+            activeTab = tabId;
         };
+        switchTab('groceries');
 
-        // SAFE DELETE LOGIC
+        function renderAll() {
+            renderGroceries();
+            renderTodos();
+            renderMeals();
+            renderChores();
+            renderHealth();
+            if(typeof window.renderCookTimes === 'function') window.renderCookTimes();
+        }
+
         window.safeDelete = function(type, id) {
             pendingDelete = { type, id };
             let itemName = "this item";
-            
-            if (type === 'grocery') {
-                const g = state.groceries.find(x => x.id === id);
-                if(g) itemName = `the grocery item: ${g.name}`;
-            } else if (type === 'todo') {
-                const t = state.todos.find(x => x.id === id);
-                if(t) itemName = `the task: ${t.text}`;
-            } else if (type === 'meal') {
-                const m = state.meals.find(x => x.id === id);
-                if(m) itemName = `the meal: ${m.name}`;
-            } else if (type === 'catFood') {
-                itemName = `this cat food log`;
-            } else if (type === 'profile') {
-                const p = state.profiles.find(x => x.id === id);
-                if(p) itemName = `the health profile for ${p.name} and ALL their history`;
-            } else if (type === 'workout') {
-                itemName = `this workout log`;
-            }
+            if (type === 'grocery') { const g = state.groceries.find(x => x.id === id); if(g) itemName = `the grocery item: ${g.name}`; } 
+            else if (type === 'todo') { const t = state.todos.find(x => x.id === id); if(t) itemName = `the task: ${t.text}`; } 
+            else if (type === 'meal') { const m = state.meals.find(x => x.id === id); if(m) itemName = `the meal: ${m.name}`; } 
+            else if (type === 'cookTime') { const c = (state.cookTimes||[]).find(x => x.id === id); if(c) itemName = `the cook info for: ${c.name}`; }
+            else if (type === 'catFood') itemName = `this cat food log`;
+            else if (type === 'profile') { const p = state.profiles.find(x => x.id === id); if(p) itemName = `the health profile for ${p.name} and ALL their history`; } 
+            else if (type === 'workout') itemName = `this workout log`;
 
             document.getElementById('safe-delete-text').innerText = `You are about to delete ${itemName}. This cannot be undone.`;
             document.getElementById('safe-delete-modal').classList.remove('hidden');
@@ -693,551 +777,32 @@
             if (type === 'grocery') state.groceries = state.groceries.filter(x => x.id !== id);
             else if (type === 'todo') state.todos = state.todos.filter(x => x.id !== id);
             else if (type === 'meal') state.meals = state.meals.filter(x => x.id !== id);
+            else if (type === 'cookTime') { state.cookTimes = state.cookTimes.filter(x => x.id !== id); window.renderCookTimes(); }
             else if (type === 'catFood') state.catFoodArchive = state.catFoodArchive.filter(x => x.id !== id);
-            else if (type === 'profile') {
-                state.profiles = state.profiles.filter(x => x.id !== id);
-                activeProfileId = state.profiles.length > 0 ? state.profiles[0].id : null;
-                document.getElementById('health-profile-form').classList.add('hidden');
+            else if (type === 'profile') { 
+                state.profiles = state.profiles.filter(x => x.id !== id); 
+                if(state.activeProfileId === id) state.activeProfileId = null; 
+                toggleProfileForm(); 
             }
             else if (type === 'workout') {
-                const p = state.profiles.find(x => x.id === activeProfileId);
-                if(p) p.workouts = p.workouts.filter(x => x.id !== id);
+                const prof = state.profiles.find(p => p.id === state.activeProfileId);
+                if(prof) prof.workouts = prof.workouts.filter(w => w.id !== id);
             }
             
             cancelDelete();
+            renderAll();
             syncStateToDB();
         };
 
-        // RENDERER
-        function renderAll() {
-            renderGroceries();
-            renderTodos();
-            renderMeals();
-            renderChores();
-            renderHealth();
-        }
-
-        /* --- GROCERIES --- */
-        window.toggleGroceryForm = function(editId = null) {
-            const form = document.getElementById('grocery-form-container');
-            if (form.classList.contains('hidden')) {
-                form.classList.remove('hidden');
-                if (editId) {
-                    const g = state.groceries.find(x => x.id === editId);
-                    document.getElementById('gf-title').innerText = "Edit Item";
-                    document.getElementById('gf-id').value = g.id;
-                    document.getElementById('gf-name').value = g.name;
-                    document.getElementById('gf-category').value = g.category || '';
-                    document.getElementById('gf-type').value = g.type || '';
-                    document.getElementById('gf-store').value = g.store || '';
-                    document.getElementById('gf-stock').value = g.stock || 0;
-                    document.getElementById('gf-need').value = g.need || 0;
-                    document.getElementById('gf-packsize').value = g.packSize || '';
-                    document.getElementById('gf-notes').value = g.notes || '';
-                } else {
-                    document.getElementById('gf-title').innerText = "New Item";
-                    ['gf-id', 'gf-name', 'gf-category', 'gf-type', 'gf-store', 'gf-packsize', 'gf-notes'].forEach(id => document.getElementById(id).value = '');
-                    document.getElementById('gf-stock').value = 0;
-                    document.getElementById('gf-need').value = 0;
-                }
-            } else {
-                form.classList.add('hidden');
-            }
-        };
-
-        window.saveGrocery = function() {
-            const id = document.getElementById('gf-id').value || Date.now().toString();
-            const newItem = {
-                id,
-                name: document.getElementById('gf-name').value.trim(),
-                category: document.getElementById('gf-category').value.trim() || 'Other',
-                type: document.getElementById('gf-type').value.trim(),
-                store: document.getElementById('gf-store').value.trim(),
-                stock: parseInt(document.getElementById('gf-stock').value) || 0,
-                need: parseInt(document.getElementById('gf-need').value) || 0,
-                packSize: document.getElementById('gf-packsize').value.trim(),
-                notes: document.getElementById('gf-notes').value.trim()
-            };
-            if (!newItem.name) return;
-
-            const existingIndex = state.groceries.findIndex(x => x.id === id);
-            if (existingIndex >= 0) state.groceries[existingIndex] = newItem;
-            else state.groceries.push(newItem);
-
-            document.getElementById('grocery-form-container').classList.add('hidden');
-            syncStateToDB();
-        };
-
-        window.markPickedUp = function(id) {
-            const g = state.groceries.find(x => x.id === id);
-            if(g) {
-                g.stock = (parseInt(g.stock) || 0) + (parseInt(g.need) || 1);
-                g.need = 0;
-                fireConfetti();
-                syncStateToDB();
-            }
-        };
-
-        window.quickAddNeed = function(id) {
-            const g = state.groceries.find(x => x.id === id);
-            if(g) {
-                g.need = (parseInt(g.need) || 0) + 1;
-                syncStateToDB();
-            }
-        };
-
-        function renderGroceries() {
-            const shopping = state.groceries.filter(g => (g.need || 0) > 0);
-            const inventory = state.groceries.filter(g => (g.need || 0) <= 0);
-
-            const buildHTML = (items, isShopping) => {
-                if(items.length === 0) return `<p class="text-zinc-600 text-xs italic">Empty</p>`;
-                
-                // Group by category
-                const groups = items.reduce((acc, item) => {
-                    const cat = item.category || 'Other';
-                    if(!acc[cat]) acc[cat] = [];
-                    acc[cat].push(item);
-                    return acc;
-                }, {});
-
-                let html = '';
-                for (const cat of Object.keys(groups).sort()) {
-                    const c = getCategoryColors(cat);
-                    html += `
-                    <div class="mb-5">
-                        <h4 class="text-[10px] font-black uppercase tracking-widest ${c.text} border-b ${c.border} pb-1 mb-2 pl-1">${cat}</h4>
-                        <div class="space-y-2">
-                    `;
-                    groups[cat].forEach(g => {
-                        html += `
-                        <div class="bg-zinc-900 border border-zinc-800 p-3 rounded-xl flex items-center gap-3">
-                            ${isShopping ? `
-                                <button data-id="${g.id}" onclick="markPickedUp(this.dataset.id)" class="w-10 h-10 flex-shrink-0 bg-zinc-950 border border-zinc-700 rounded-lg flex items-center justify-center hover:bg-zinc-800 transition-colors shadow-sm">
-                                </button>
-                            ` : `
-                                <button data-id="${g.id}" onclick="quickAddNeed(this.dataset.id)" class="w-10 h-10 flex-shrink-0 bg-zinc-950 border border-zinc-800 text-zinc-500 rounded-lg flex items-center justify-center hover:text-zinc-100 hover:border-zinc-500 transition-colors" title="Add to list">
-                                    <i class="ph-fill ph-plus font-bold"></i>
-                                </button>
-                            `}
-                            
-                            <div class="flex-1 min-w-0">
-                                <div class="flex justify-between items-start">
-                                    <h4 class="font-bold text-zinc-100 truncate text-sm leading-tight">${g.name}</h4>
-                                    ${g.type ? `<span class="text-[9px] bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded ml-2 font-bold uppercase tracking-wider whitespace-nowrap">${g.type}</span>` : ''}
-                                </div>
-                                <div class="text-[11px] font-bold ${c.text} mt-0.5">Stock: ${g.stock || 0} • Need: ${g.need || 0} ${g.packSize ? `(${g.packSize})` : ''}</div>
-                                
-                                ${(g.store || g.notes) ? `
-                                <div class="flex items-start gap-2 mt-1.5 flex-wrap">
-                                    ${g.store ? `<span class="bg-zinc-950 border border-zinc-700 text-zinc-300 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded shadow-sm">🛒 ${g.store}</span>` : ''}
-                                    ${g.notes ? `<span class="text-[11px] text-zinc-400 italic break-words whitespace-normal leading-tight">${g.notes}</span>` : ''}
-                                </div>
-                                ` : ''}
-                            </div>
-                            
-                            <div class="flex flex-col gap-1 flex-shrink-0">
-                                <button data-id="${g.id}" onclick="toggleGroceryForm(this.dataset.id)" class="p-1.5 text-zinc-500 hover:text-zinc-200 bg-zinc-950 rounded border border-zinc-800"><i class="ph-fill ph-pencil-simple"></i></button>
-                                <button data-id="${g.id}" onclick="safeDelete('grocery', this.dataset.id)" class="p-1 text-zinc-600 hover:text-red-500 text-[10px] font-bold uppercase tracking-wider bg-zinc-950 rounded border border-zinc-800">Remove</button>
-                            </div>
-                        </div>
-                        `;
-                    });
-                    html += `</div></div>`;
-                }
-                return html;
-            };
-
-            document.getElementById('shopping-list-container').innerHTML = buildHTML(shopping, true);
-            document.getElementById('inventory-list-container').innerHTML = buildHTML(inventory, false);
-        }
-
-        /* --- TASKS --- */
-        window.addTask = function() {
-            const text = document.getElementById('todo-input').value.trim();
-            if (!text) return;
-            state.todos.push({ id: Date.now().toString(), text, completed: false, history: [`Added ${formatDisplayDate(new Date().toISOString())}`] });
-            document.getElementById('todo-input').value = '';
-            syncStateToDB();
-        };
-
-        window.toggleTodo = function(id) {
-            const t = state.todos.find(x => x.id === id);
-            if (t) {
-                t.completed = !t.completed;
-                t.history.push(`${t.completed ? 'Completed' : 'Unchecked'} ${formatDisplayDate(new Date().toISOString())}`);
-                if (t.completed) fireConfetti();
-                syncStateToDB();
-            }
-        };
-
-        function renderTodos() {
-            const container = document.getElementById('todos-container');
-            if (state.todos.length === 0) {
-                container.innerHTML = `<p class="text-zinc-600 text-sm italic text-center py-4">All caught up!</p>`;
-                return;
-            }
-            container.innerHTML = state.todos.map(t => `
-                <div class="bg-zinc-900 border border-zinc-800 p-4 rounded-xl flex flex-col gap-2 shadow-sm">
-                    <div class="flex items-center gap-3">
-                        <button data-id="${t.id}" onclick="toggleTodo(this.dataset.id)" class="w-6 h-6 rounded-md border-2 flex-shrink-0 flex items-center justify-center transition-colors ${t.completed ? 'bg-red-900 border-red-900 text-white' : 'border-zinc-700 bg-zinc-950'}">
-                            ${t.completed ? '<i class="ph-bold ph-check text-sm"></i>' : ''}
-                        </button>
-                        <span class="flex-1 font-bold ${t.completed ? 'line-through text-zinc-600' : 'text-zinc-100'}">${t.text}</span>
-                        <button data-id="${t.id}" onclick="safeDelete('todo', this.dataset.id)" class="p-2 text-zinc-600 hover:text-red-500 rounded bg-zinc-950 border border-zinc-800"><i class="ph-fill ph-trash"></i></button>
-                    </div>
-                    <div class="text-[9px] text-zinc-500 pl-9 font-bold uppercase tracking-widest">
-                        Hist: ${t.history.slice(-2).join(' • ')}
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        /* --- MEALS --- */
-        window.toggleMealForm = function() {
-            const form = document.getElementById('meal-form-container');
-            form.classList.toggle('hidden');
-            if (!form.classList.contains('hidden')) {
-                document.getElementById('mf-name').value = '';
-                document.getElementById('mf-date').value = new Date().toISOString().split('T')[0];
-            }
-        };
-
-        window.saveMeal = function() {
-            const name = document.getElementById('mf-name').value.trim();
-            const dateStr = document.getElementById('mf-date').value;
-            const type = document.getElementById('mf-type').value;
-            if(!name || !dateStr) return;
-
-            // Ensure date saves as noon Chicago time to prevent timezone jumping backward a day
-            const d = new Date(dateStr + "T12:00:00"); 
-            state.meals.push({ id: Date.now().toString(), name, date: d.toISOString(), type });
-            toggleMealForm();
-            syncStateToDB();
-        };
-
-        function renderMeals() {
-            const container = document.getElementById('meals-container');
-            if (state.meals.length === 0) {
-                container.innerHTML = `<p class="text-zinc-600 text-sm italic text-center py-4">No meals planned.</p>`;
-                return;
-            }
-            
-            const sorted = [...state.meals].sort((a,b) => new Date(a.date) - new Date(b.date));
-            container.innerHTML = sorted.map(m => `
-                <div class="bg-zinc-900 border border-zinc-800 p-4 rounded-xl flex justify-between items-center shadow-sm">
-                    <div>
-                        <div class="flex items-center gap-2 mb-1">
-                            <span class="text-[9px] font-black px-1.5 py-0.5 bg-zinc-950 text-zinc-400 border border-zinc-800 rounded uppercase tracking-widest">${m.type}</span>
-                            <span class="text-xs font-bold text-red-500">${formatDisplayDate(m.date)}</span>
-                        </div>
-                        <h4 class="font-black text-zinc-100">${m.name}</h4>
-                    </div>
-                    <button data-id="${m.id}" onclick="safeDelete('meal', this.dataset.id)" class="p-2 text-zinc-600 hover:text-red-500 rounded bg-zinc-950 border border-zinc-800"><i class="ph-fill ph-trash"></i></button>
-                </div>
-            `).join('');
-        }
-
-        /* --- CHORES (CAT) --- */
-        window.updateCatTask = function(taskType) {
-            state.chores[taskType] = new Date().toISOString();
-            fireConfetti();
-            syncStateToDB();
-        };
-
-        window.updateCatSettings = function() {
-            state.chores.settings.clawsWeeks = parseInt(document.getElementById('cat-claws-weeks').value) || 4;
-            state.chores.settings.brushWeeks = parseInt(document.getElementById('cat-brush-weeks').value) || 1;
-            state.chores.settings.foodWeeks = parseInt(document.getElementById('cat-food-weeks').value) || 4;
-            syncStateToDB();
-        };
-
-        window.toggleCatFoodForm = function() {
-            document.getElementById('cat-food-form').classList.toggle('hidden');
-        };
-
-        window.saveCatFood = function() {
-            const brand = document.getElementById('cf-brand').value.trim();
-            const flavor = document.getElementById('cf-flavor').value.trim();
-            if(!brand || !flavor) return;
-
-            const entry = { id: Date.now().toString(), date: new Date().toISOString(), brand, flavor };
-            state.catFoodArchive = [entry, ...(state.catFoodArchive || [])];
-            toggleCatFoodForm();
-            fireConfetti();
-            syncStateToDB();
-        };
-
-        function calculateNextDue(lastDateIso, weeks) {
-            if(!lastDateIso) return "Never";
-            const lastDate = getChicagoTime(lastDateIso);
-            lastDate.setDate(lastDate.getDate() + (weeks * 7));
-            const now = getChicagoTime();
-            const diffDays = Math.ceil((lastDate - now) / (1000 * 60 * 60 * 24));
-            
-            let color = "text-zinc-400";
-            if (diffDays <= 2) color = "text-orange-500";
-            if (diffDays < 0) color = "text-red-500";
-            
-            return `<span class="${color}">Due: ${formatDisplayDate(lastDate.toISOString())}</span>`;
-        }
-
-        function renderChores() {
-            const c = state.chores;
-            const set = c.settings || { clawsWeeks: 4, brushWeeks: 1, foodWeeks: 4 };
-            
-            document.getElementById('litter-scoop-date').innerText = formatDisplayDate(c.litterPicked);
-            document.getElementById('litter-change-date').innerText = formatDisplayDate(c.litterChanged);
-            
-            document.getElementById('cat-claws-weeks').value = set.clawsWeeks;
-            document.getElementById('cat-brush-weeks').value = set.brushWeeks;
-            document.getElementById('cat-food-weeks').value = set.foodWeeks;
-
-            document.getElementById('claws-due-date').innerHTML = calculateNextDue(c.clawsClipped, set.clawsWeeks);
-            document.getElementById('brush-due-date').innerHTML = calculateNextDue(c.brushed, set.brushWeeks);
-            
-            const lastFood = state.catFoodArchive && state.catFoodArchive.length > 0 ? state.catFoodArchive[0].date : null;
-            document.getElementById('food-due-date').innerHTML = calculateNextDue(lastFood, set.foodWeeks);
-
-            // Archive
-            const archiveHtml = (state.catFoodArchive || []).map(f => `
-                <div class="flex justify-between items-center bg-zinc-950 p-2 rounded-lg border border-zinc-800">
-                    <div>
-                        <span class="text-[10px] font-black text-red-500 block">${formatDisplayDate(f.date)}</span>
-                        <span class="text-xs font-bold text-zinc-300">${f.brand} - ${f.flavor}</span>
-                    </div>
-                    <button data-id="${f.id}" onclick="safeDelete('catFood', this.dataset.id)" class="text-zinc-600 hover:text-red-500"><i class="ph-fill ph-x-circle text-lg"></i></button>
-                </div>
-            `).join('');
-            document.getElementById('cat-food-archive').innerHTML = archiveHtml || '<p class="text-xs text-zinc-600 italic">No food logged yet.</p>';
-        }
-
-        /* --- HEALTH --- */
-        window.openNewProfileForm = function() {
-            document.getElementById('hpf-title').innerText = "New Profile";
-            document.getElementById('hpf-id').value = '';
-            document.getElementById('hpf-name').value = '';
-            document.getElementById('hpf-weight').value = '';
-            document.getElementById('hpf-delete-btn').classList.add('hidden');
-            document.getElementById('health-profile-form').classList.remove('hidden');
-        };
-
-        window.editHealthProfile = function() {
-            if(!activeProfileId) return;
-            const p = state.profiles.find(x => x.id === activeProfileId);
-            if(!p) return;
-            
-            document.getElementById('hpf-title').innerText = "Edit Profile";
-            document.getElementById('hpf-id').value = p.id;
-            document.getElementById('hpf-name').value = p.name;
-            document.getElementById('hpf-weight').value = p.weight || '';
-            document.getElementById('hpf-climate').value = p.climate || 'Normal';
-            document.getElementById('hpf-activity').value = p.activity || 'Sedentary';
-            document.getElementById('hpf-delete-btn').classList.remove('hidden');
-            document.getElementById('health-profile-form').classList.remove('hidden');
-        };
-
-        window.saveHealthProfile = function() {
-            const id = document.getElementById('hpf-id').value || Date.now().toString();
-            const name = document.getElementById('hpf-name').value.trim();
-            if(!name) return;
-
-            const profile = {
-                id, name,
-                weight: parseInt(document.getElementById('hpf-weight').value) || 0,
-                climate: document.getElementById('hpf-climate').value,
-                activity: document.getElementById('hpf-activity').value,
-                waterLogs: [], workouts: []
-            };
-
-            const existingIdx = state.profiles.findIndex(x => x.id === id);
-            if (existingIdx >= 0) {
-                profile.waterLogs = state.profiles[existingIdx].waterLogs || [];
-                profile.workouts = state.profiles[existingIdx].workouts || [];
-                state.profiles[existingIdx] = profile;
-            } else {
-                state.profiles.push(profile);
-            }
-
-            activeProfileId = id;
-            document.getElementById('health-profile-form').classList.add('hidden');
-            syncStateToDB();
-        };
-
-        window.changeHealthProfile = function() {
-            activeProfileId = document.getElementById('health-profile-select').value;
-            renderHealth();
-        };
-
-        function calculateWaterGoal(p) {
-            if(!p || !p.weight) return 0;
-            let oz = (p.weight * 0.5);
-            if(p.activity === 'Light') oz += 12;
-            if(p.activity === 'Moderate') oz += 24;
-            if(p.activity === 'Active') oz += 36;
-            if(p.climate.includes('Hot') || p.climate.includes('Dry')) oz *= 1.15;
-            return Math.round(oz);
-        }
-
-        window.addWater = function(amount) {
-            if(!activeProfileId) return;
-            const p = state.profiles.find(x => x.id === activeProfileId);
-            if(p) {
-                p.waterLogs = p.waterLogs || [];
-                p.waterLogs.push({ date: new Date().toISOString(), oz: amount });
-                fireConfetti();
-                syncStateToDB();
-            }
-        };
-
-        window.toggleWorkoutForm = function() {
-            document.getElementById('workout-form').classList.toggle('hidden');
-        };
-
-        window.saveWorkout = function() {
-            if(!activeProfileId) return;
-            const p = state.profiles.find(x => x.id === activeProfileId);
-            const name = document.getElementById('wo-name').value.trim();
-            if(!p || !name) return;
-
-            p.workouts = p.workouts || [];
-            p.workouts.push({
-                id: Date.now().toString(),
-                date: new Date().toISOString(),
-                name,
-                sets: document.getElementById('wo-sets').value,
-                reps: document.getElementById('wo-reps').value,
-                dist: document.getElementById('wo-dist').value,
-                unit: document.getElementById('wo-unit').value
-            });
-            
-            ['wo-name','wo-sets','wo-reps','wo-dist','wo-unit'].forEach(id => document.getElementById(id).value = '');
-            toggleWorkoutForm();
-            fireConfetti();
-            syncStateToDB();
-        };
-
-        function renderHealth() {
-            const select = document.getElementById('health-profile-select');
-            
-            if (!state.profiles || state.profiles.length === 0) {
-                select.innerHTML = '<option class="bg-zinc-950">No profiles found</option>';
-                document.getElementById('water-tracker-section').classList.add('hidden');
-                document.getElementById('workout-section').classList.add('hidden');
-                return;
-            }
-
-            if (!activeProfileId || !state.profiles.find(x => x.id === activeProfileId)) {
-                activeProfileId = state.profiles[0].id;
-            }
-
-            select.innerHTML = state.profiles.map(p => `<option class="bg-zinc-950" value="${p.id}" ${p.id === activeProfileId ? 'selected' : ''}>${p.name}</option>`).join('');
-            
-            const p = state.profiles.find(x => x.id === activeProfileId);
-            
-            // Water
-            document.getElementById('water-tracker-section').classList.remove('hidden');
-            const goal = calculateWaterGoal(p);
-            document.getElementById('water-goal-text').innerText = `Goal: ${goal} oz`;
-            
-            const todayStr = getChicagoTime().toISOString().split('T')[0];
-            const todayOz = (p.waterLogs || []).filter(l => {
-                return getChicagoTime(l.date).toISOString().split('T')[0] === todayStr;
-            }).reduce((sum, l) => sum + l.oz, 0);
-
-            document.getElementById('water-current-text').innerText = todayOz;
-            const pct = goal > 0 ? Math.min(100, Math.round((todayOz / goal) * 100)) : 0;
-            document.getElementById('water-progress-bar').style.width = `${pct}%`;
-            
-            if(pct >= 100) document.getElementById('water-progress-bar').classList.replace('bg-blue-600', 'bg-emerald-500');
-            else document.getElementById('water-progress-bar').classList.replace('bg-emerald-500', 'bg-blue-600');
-
-            // Workouts
-            document.getElementById('workout-section').classList.remove('hidden');
-            const woList = (p.workouts || []).sort((a,b) => new Date(b.date) - new Date(a.date));
-            if(woList.length === 0) {
-                document.getElementById('workout-list').innerHTML = '<p class="text-xs text-zinc-600 italic">No workouts logged yet.</p>';
-            } else {
-                document.getElementById('workout-list').innerHTML = woList.map(w => {
-                    let details = [];
-                    if(w.sets && w.reps) details.push(`${w.sets} Sets x ${w.reps} Reps`);
-                    else if(w.sets) details.push(`${w.sets} Sets`);
-                    else if(w.reps) details.push(`${w.reps} Reps`);
-                    if(w.dist && w.unit) details.push(`${w.dist} ${w.unit}`);
-                    else if(w.dist) details.push(w.dist);
-                    else if(w.unit) details.push(w.unit);
-
-                    return `
-                    <div class="bg-zinc-900 border border-zinc-800 p-3 rounded-xl flex justify-between items-center">
-                        <div>
-                            <span class="text-[9px] font-black text-emerald-500 uppercase tracking-widest block mb-0.5">${formatDisplayDate(w.date)}</span>
-                            <span class="font-bold text-zinc-100">${w.name}</span>
-                            ${details.length > 0 ? `<span class="text-xs text-zinc-400 block mt-0.5">${details.join(' • ')}</span>` : ''}
-                        </div>
-                        <button data-id="${w.id}" onclick="safeDelete('workout', this.dataset.id)" class="text-zinc-600 hover:text-red-500 bg-zinc-950 p-2 rounded border border-zinc-800"><i class="ph-fill ph-trash"></i></button>
-                    </div>`;
-                }).join('');
-            }
-        }
-
-        /* --- TIMER --- */
-        let timerInterval;
-        let alarmSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-        alarmSound.loop = true;
-
-        window.toggleTimerMenu = function() { document.getElementById('timer-bar').classList.toggle('hidden'); };
-        
-        window.startTimer = function() {
-            const mins = parseFloat(document.getElementById('timer-mins').value);
-            if(!mins || mins <= 0) return;
-            
-            clearInterval(timerInterval);
-            alarmSound.pause();
-            alarmSound.currentTime = 0;
-            
-            const endTime = Date.now() + (mins * 60 * 1000);
-            document.getElementById('btn-start-timer').innerText = "Restart";
-            document.getElementById('btn-dismiss-timer').classList.add('hidden');
-            
-            timerInterval = setInterval(() => {
-                const left = endTime - Date.now();
-                if(left <= 0) {
-                    clearInterval(timerInterval);
-                    document.getElementById('timer-display').innerText = "00:00";
-                    document.getElementById('timer-display').classList.add('text-red-500', 'animate-pulse');
-                    document.getElementById('btn-dismiss-timer').classList.remove('hidden');
-                    alarmSound.play().catch(e => console.log("Audio blocked by browser:", e));
-                    return;
-                }
-                const m = Math.floor(left / 60000).toString().padStart(2, '0');
-                const s = Math.floor((left % 60000) / 1000).toString().padStart(2, '0');
-                document.getElementById('timer-display').innerText = `${m}:${s}`;
-                document.getElementById('timer-display').classList.remove('text-red-500', 'animate-pulse');
-            }, 1000);
-        };
-
-        window.dismissTimer = function() {
-            alarmSound.pause();
-            alarmSound.currentTime = 0;
-            document.getElementById('timer-display').classList.remove('text-red-500', 'animate-pulse');
-            document.getElementById('btn-dismiss-timer').classList.add('hidden');
-            document.getElementById('btn-start-timer').innerText = "Start";
-        };
-
-        /* --- DATA MANAGEMENT (BACKUP/RESTORE) --- */
-        window.toggleDataManager = function() {
-            document.getElementById('data-modal').classList.toggle('hidden');
-        };
+        window.toggleDataModal = () => document.getElementById('data-modal').classList.toggle('hidden');
 
         window.exportData = function() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
-            const downloadAnchorNode = document.createElement('a');
-            downloadAnchorNode.setAttribute("href", dataStr);
-            downloadAnchorNode.setAttribute("download", `CommandCenter_Backup_${new Date().toISOString().split('T')[0]}.json`);
-            document.body.appendChild(downloadAnchorNode);
-            downloadAnchorNode.click();
-            downloadAnchorNode.remove();
-            toggleDataManager();
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state));
+            const dlAnchorElem = document.createElement('a');
+            dlAnchorElem.setAttribute("href", dataStr);
+            dlAnchorElem.setAttribute("download", `command_center_backup_${new Date().toISOString().split('T')[0]}.json`);
+            dlAnchorElem.click();
+            toggleDataModal();
         };
 
         window.importData = function(event) {
@@ -1247,16 +812,721 @@
             reader.onload = function(e) {
                 try {
                     const importedState = JSON.parse(e.target.result);
-                    if(importedState.groceries) { // basic validation
-                        state = { ...defaultState, ...importedState };
+                    if (importedState && typeof importedState === 'object') {
+                        state = { ...state, ...importedState };
                         syncStateToDB();
-                        alert("Data successfully restored!");
-                        toggleDataManager();
-                    } else { alert("Invalid backup file."); }
-                } catch (err) { alert("Error reading file."); }
+                        renderAll();
+                        alert("Backup restored successfully!");
+                    }
+                } catch(err) {
+                    alert("Error restoring file. Make sure it's a valid backup JSON.");
+                }
             };
             reader.readAsText(file);
+            toggleDataModal();
         };
+
+        let timerInterval = null;
+        let alarmAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'); // Simple beep
+        alarmAudio.loop = true;
+
+        window.toggleTimerSetup = () => document.getElementById('timer-setup-modal').classList.toggle('hidden');
+
+        window.startTimer = function() {
+            const m = parseInt(document.getElementById('timer-mins').value) || 0;
+            const s = parseInt(document.getElementById('timer-secs').value) || 0;
+            let totalSecs = (m * 60) + s;
+            if (totalSecs <= 0) return;
+
+            toggleTimerSetup();
+            document.getElementById('global-timer').classList.remove('hidden');
+            document.getElementById('timer-dismiss-btn').classList.add('hidden');
+            document.getElementById('timer-cancel-btn').classList.remove('hidden');
+            document.getElementById('global-timer').classList.remove('bg-red-600', 'animate-pulse');
+            document.getElementById('global-timer').classList.add('bg-red-900');
+            alarmAudio.pause();
+            alarmAudio.currentTime = 0;
+
+            if (timerInterval) clearInterval(timerInterval);
+
+            timerInterval = setInterval(() => {
+                totalSecs--;
+                const dm = Math.floor(totalSecs / 60).toString().padStart(2, '0');
+                const ds = (totalSecs % 60).toString().padStart(2, '0');
+                document.getElementById('timer-display').innerText = `${dm}:${ds}`;
+
+                if (totalSecs <= 0) {
+                    clearInterval(timerInterval);
+                    document.getElementById('global-timer').classList.replace('bg-red-900', 'bg-red-600');
+                    document.getElementById('global-timer').classList.add('animate-pulse');
+                    document.getElementById('timer-cancel-btn').classList.add('hidden');
+                    document.getElementById('timer-dismiss-btn').classList.remove('hidden');
+                    document.getElementById('timer-display').innerText = "DONE!";
+                    alarmAudio.play().catch(e => console.log("Audio play blocked by browser"));
+                }
+            }, 1000);
+        };
+
+        window.cancelTimer = function() {
+            if (timerInterval) clearInterval(timerInterval);
+            document.getElementById('global-timer').classList.add('hidden');
+            alarmAudio.pause();
+        };
+
+        window.dismissTimer = function() {
+            cancelTimer();
+        };
+
+        const catColors = {
+            "Produce": "emerald", "Vegetables": "emerald",
+            "Meat": "red", "Seafood": "red",
+            "Dairy": "blue", "Beverages": "blue",
+            "Pantry": "amber", "Breads & Grains": "amber",
+            "Frozen": "cyan",
+            "Snacks": "orange",
+            "Household": "slate",
+            "Pet": "purple", "Dips/Sauces": "purple",
+            "Other": "zinc"
+        };
+        const defaultColor = "zinc";
+
+        window.toggleGroceryForm = function(editId = null) {
+            const form = document.getElementById('grocery-form-container');
+            form.classList.toggle('hidden');
+            
+            // Populate datalist with unique categories
+            const cats = [...new Set(state.groceries.map(g => g.category).filter(Boolean))];
+            document.getElementById('category-list').innerHTML = cats.map(c => `<option value="${c}">`).join('');
+
+            if (!form.classList.contains('hidden')) {
+                if (editId) {
+                    const g = state.groceries.find(x => x.id === editId);
+                    document.getElementById('gf-title').innerText = "Edit Item";
+                    document.getElementById('gf-id').value = g.id;
+                    document.getElementById('gf-name').value = g.name || '';
+                    document.getElementById('gf-category').value = g.category || '';
+                    document.getElementById('gf-type').value = g.type || '';
+                    document.getElementById('gf-store').value = g.store || '';
+                    document.getElementById('gf-notes').value = g.notes || '';
+                    document.getElementById('gf-stock').value = g.stock || 0;
+                    document.getElementById('gf-need').value = g.need || 0;
+                    document.getElementById('gf-packSize').value = g.packSize || '';
+                } else {
+                    document.getElementById('gf-title').innerText = "Add Item";
+                    document.getElementById('gf-id').value = '';
+                    document.getElementById('gf-name').value = '';
+                    document.getElementById('gf-category').value = '';
+                    document.getElementById('gf-type').value = '';
+                    document.getElementById('gf-store').value = '';
+                    document.getElementById('gf-notes').value = '';
+                    document.getElementById('gf-stock').value = 0;
+                    document.getElementById('gf-need').value = 0;
+                    document.getElementById('gf-packSize').value = '';
+                }
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        };
+
+        window.saveGrocery = function() {
+            const id = document.getElementById('gf-id').value;
+            const name = document.getElementById('gf-name').value.trim();
+            if (!name) return;
+
+            const newItem = {
+                id: id ? id : Date.now().toString(),
+                name,
+                category: document.getElementById('gf-category').value.trim() || 'Other',
+                type: document.getElementById('gf-type').value.trim(),
+                store: document.getElementById('gf-store').value.trim(),
+                notes: document.getElementById('gf-notes').value.trim(),
+                stock: parseInt(document.getElementById('gf-stock').value) || 0,
+                need: parseInt(document.getElementById('gf-need').value) || 0,
+                packSize: document.getElementById('gf-packSize').value.trim()
+            };
+
+            if (id) {
+                state.groceries = state.groceries.map(g => g.id === id ? newItem : g);
+            } else {
+                state.groceries.push(newItem);
+            }
+            
+            toggleGroceryForm();
+            renderGroceries();
+            syncStateToDB();
+        };
+
+        function renderGroceries() {
+            const container = document.getElementById('grocery-lists');
+            const items = state.groceries || [];
+            if (items.length === 0) {
+                container.innerHTML = '<p class="text-zinc-500 text-sm italic text-center py-8">Inventory is empty.</p>';
+                return;
+            }
+
+            // Group by category
+            const grouped = items.reduce((acc, item) => {
+                const cat = item.category || 'Other';
+                if(!acc[cat]) acc[cat] = [];
+                acc[cat].push(item);
+                return acc;
+            }, {});
+
+            // Sort categories alphabetically
+            const sortedCats = Object.keys(grouped).sort();
+
+            container.innerHTML = sortedCats.map(cat => {
+                const color = catColors[cat] || defaultColor;
+                
+                return `
+                <div class="mb-6">
+                    <h3 class="font-black text-sm uppercase tracking-widest text-${color}-400 mb-3 border-b border-${color}-900/50 pb-2">${cat}</h3>
+                    <div class="space-y-2">
+                        ${grouped[cat].sort((a,b) => a.name.localeCompare(b.name)).map(g => `
+                            <div class="bg-zinc-950 p-3 rounded-xl border ${g.need > 0 ? `border-${color}-900/50 bg-${color}-950/10` : 'border-zinc-800'} flex items-start gap-3">
+                                <div class="flex-1 min-w-0 pr-2">
+                                    <div class="flex items-start justify-between">
+                                        <h4 class="font-bold text-zinc-100">${g.name}</h4>
+                                        ${g.type ? `<span class="text-[9px] font-bold px-1.5 py-0.5 bg-zinc-900 text-zinc-400 rounded uppercase tracking-wider ml-2 flex-shrink-0">${g.type}</span>` : ''}
+                                    </div>
+                                    
+                                    <div class="mt-1 text-xs font-medium text-zinc-400 flex flex-wrap gap-x-2 gap-y-1">
+                                        <span>Stock: <span class="text-zinc-200">${g.stock}</span></span>
+                                        <span>Need: <span class="${g.need > 0 ? 'text-red-400 font-bold' : 'text-zinc-200'}">${g.need} ${g.packSize ? `(${g.packSize})` : ''}</span></span>
+                                    </div>
+                                    
+                                    ${(g.store || g.notes) ? `
+                                        <div class="mt-1.5 flex flex-wrap gap-2 items-start text-[11px]">
+                                            ${g.store ? `<span class="bg-zinc-800 text-zinc-300 px-1.5 py-0.5 rounded font-bold whitespace-nowrap"><i class="ph-fill ph-shopping-cart text-[10px]"></i> ${g.store}</span>` : ''}
+                                            ${g.notes ? `<span class="text-zinc-500 italic break-words whitespace-normal leading-tight">${g.notes}</span>` : ''}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                                <div class="flex flex-col gap-1 flex-shrink-0">
+                                    <button onclick="toggleGroceryForm('${g.id}')" class="p-1.5 text-zinc-500 hover:text-zinc-300 bg-zinc-900 rounded-lg border border-zinc-800"><i class="ph-fill ph-pencil-simple text-sm"></i></button>
+                                    <button onclick="safeDelete('grocery', '${g.id}')" class="p-1.5 text-zinc-600 hover:text-red-500 bg-zinc-900 rounded-lg border border-zinc-800"><i class="ph-fill ph-trash text-sm"></i></button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        window.addTodo = function() {
+            const input = document.getElementById('todo-input');
+            const text = input.value.trim();
+            if (!text) return;
+            state.todos.push({
+                id: Date.now().toString(),
+                text,
+                completed: false,
+                history: [`Added ${formatDisplayDate(new Date().toISOString())}`]
+            });
+            input.value = '';
+            renderTodos();
+            syncStateToDB();
+        };
+
+        window.toggleTodo = function(id) {
+            const todo = state.todos.find(t => t.id === id);
+            if (todo) {
+                todo.completed = !todo.completed;
+                todo.history.push(`${todo.completed ? 'Completed' : 'Unchecked'} ${formatDisplayDate(new Date().toISOString())}`);
+                if(todo.completed) fireConfetti();
+                renderTodos();
+                syncStateToDB();
+            }
+        };
+
+        function renderTodos() {
+            const list = document.getElementById('todo-list');
+            if (state.todos.length === 0) {
+                list.innerHTML = '<p class="text-zinc-500 text-sm italic text-center py-4">No pending tasks.</p>';
+                return;
+            }
+            list.innerHTML = state.todos.map(t => `
+                <div class="bg-zinc-950 p-4 rounded-2xl shadow-sm border ${t.completed ? 'border-zinc-800 opacity-60' : 'border-zinc-700'} flex flex-col gap-2 transition-all">
+                    <div class="flex items-center gap-3">
+                        <button onclick="toggleTodo('${t.id}')" class="w-6 h-6 rounded-md border-2 flex flex-shrink-0 items-center justify-center transition-colors ${t.completed ? 'bg-red-900 border-red-900 text-zinc-100' : 'border-zinc-500 hover:border-zinc-300'}">
+                            ${t.completed ? '<i class="ph-bold ph-check text-sm"></i>' : ''}
+                        </button>
+                        <span class="flex-1 font-bold ${t.completed ? 'line-through text-zinc-500' : 'text-zinc-100'}">${t.text}</span>
+                        <button onclick="safeDelete('todo', '${t.id}')" class="p-2 text-zinc-600 hover:text-red-500 hover:bg-zinc-900 rounded-lg"><i class="ph-fill ph-trash text-lg"></i></button>
+                    </div>
+                    <div class="text-[9px] text-zinc-600 font-bold uppercase tracking-widest pl-9">
+                        Hsty: ${(t.history||[]).slice(-2).join(' • ')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        window.filterIngredients = function() {
+            const query = document.getElementById('mf-ingredient-search').value.toLowerCase();
+            const labels = document.querySelectorAll('.ing-label-container');
+            labels.forEach(label => {
+                if (label.innerText.toLowerCase().includes(query)) label.classList.remove('hidden');
+                else label.classList.add('hidden');
+            });
+        };
+
+        window.toggleMealForm = function() {
+            const form = document.getElementById('meal-form-container');
+            form.classList.toggle('hidden');
+            if (!form.classList.contains('hidden')) {
+                document.getElementById('mf-name').value = '';
+                document.getElementById('mf-date').value = new Date().toISOString().split('T')[0];
+                document.getElementById('mf-repeat').value = '';
+                document.getElementById('mf-ingredient-search').value = '';
+                
+                // Populate Inventory checklist
+                const ingContainer = document.getElementById('mf-ingredients-list');
+                if (state.groceries.length === 0) {
+                    ingContainer.innerHTML = `<p class="text-xs text-zinc-600 p-2">No inventory available.</p>`;
+                } else {
+                    const sorted = [...state.groceries].sort((a,b) => a.name.localeCompare(b.name));
+                    ingContainer.innerHTML = sorted.map(g => `
+                        <label class="ing-label-container flex items-center gap-3 p-2 hover:bg-zinc-900 rounded-lg cursor-pointer border-b border-zinc-800/50 last:border-0">
+                            <input type="checkbox" value="${g.id}" class="mf-ingredient-chk w-4 h-4 rounded bg-zinc-950 border-zinc-700 text-red-900 focus:ring-red-900 focus:ring-offset-zinc-900">
+                            <div class="flex flex-col">
+                                <span class="text-sm text-zinc-300 font-bold leading-none">${g.name}</span>
+                                ${g.stock > 0 ? `<span class="text-[9px] font-bold text-emerald-500 uppercase tracking-widest mt-1">In Stock: ${g.stock}</span>` : `<span class="text-[9px] font-bold text-red-500 uppercase tracking-widest mt-1">Need: ${g.need || 0}</span>`}
+                            </div>
+                        </label>
+                    `).join('');
+                }
+            }
+        };
+
+        window.saveMeal = function() {
+            const name = document.getElementById('mf-name').value.trim();
+            const date = document.getElementById('mf-date').value;
+            if (!name || !date) return;
+
+            const linkedIds = Array.from(document.querySelectorAll('.mf-ingredient-chk:checked')).map(cb => cb.value);
+            const repeat = parseInt(document.getElementById('mf-repeat').value) || null;
+
+            state.meals.push({
+                id: Date.now().toString(),
+                name, date, repeat,
+                type: document.getElementById('mf-type').value,
+                linkedIngredients: linkedIds
+            });
+
+            toggleMealForm();
+            renderMeals();
+            syncStateToDB();
+        };
+
+        window.markMealDone = function(id) {
+            const mealIdx = state.meals.findIndex(m => m.id === id);
+            if (mealIdx === -1) return;
+            const meal = state.meals[mealIdx];
+            
+            fireConfetti();
+            
+            if (meal.repeat) {
+                const newDate = new Date(meal.date);
+                newDate.setDate(newDate.getDate() + (meal.repeat * 7));
+                meal.date = newDate.toISOString().split('T')[0];
+            } else {
+                state.meals.splice(mealIdx, 1);
+            }
+            renderMeals();
+            syncStateToDB();
+        };
+
+        function renderMeals() {
+            const dList = document.getElementById('meals-dinner-list');
+            const pList = document.getElementById('meals-prep-list');
+            
+            const dinners = state.meals.filter(m => m.type === 'Weekly Dinner').sort((a,b) => new Date(a.date) - new Date(b.date));
+            const preps = state.meals.filter(m => m.type === 'Meal Prep').sort((a,b) => new Date(a.date) - new Date(b.date));
+
+            const renderBlock = (list) => {
+                if(list.length === 0) return '<p class="text-zinc-600 text-xs italic">Nothing planned.</p>';
+                return list.map(m => {
+                    const linkedHtml = (m.linkedIngredients || []).map(ingId => {
+                        const ing = state.groceries.find(g => g.id === ingId);
+                        if(!ing) return '';
+                        const color = ing.stock > 0 ? 'text-emerald-400' : 'text-red-400';
+                        return `<span class="text-[9px] bg-zinc-900 border border-zinc-800 ${color} px-1.5 py-0.5 rounded mr-1 mb-1 inline-block truncate max-w-[100px]">${ing.name}</span>`;
+                    }).join('');
+
+                    return `
+                    <div class="bg-zinc-950 p-4 rounded-xl shadow-sm border border-zinc-800 flex flex-col gap-2">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-bold text-zinc-100">${m.name}</h4>
+                                <span class="text-xs font-bold text-zinc-500 mt-1 block flex items-center gap-1">
+                                    <i class="ph-fill ph-calendar-blank"></i> ${formatDisplayDate(m.date)} 
+                                    ${m.repeat ? `<span class="text-[9px] uppercase tracking-widest text-indigo-400 ml-2">(Repeats ${m.repeat}wks)</span>` : ''}
+                                </span>
+                            </div>
+                            <div class="flex gap-1">
+                                <button onclick="markMealDone('${m.id}')" class="text-zinc-400 hover:text-emerald-400 bg-zinc-900 rounded p-1.5 border border-zinc-800" title="Mark Done"><i class="ph-bold ph-check text-lg"></i></button>
+                                <button onclick="safeDelete('meal', '${m.id}')" class="text-zinc-600 hover:text-red-500 bg-zinc-900 rounded p-1.5 border border-zinc-800" title="Delete"><i class="ph-fill ph-trash text-lg"></i></button>
+                            </div>
+                        </div>
+                        ${linkedHtml ? `<div class="mt-1 pt-2 border-t border-zinc-800/50">${linkedHtml}</div>` : ''}
+                    </div>
+                `}).join('');
+            };
+
+            dList.innerHTML = renderBlock(dinners);
+            pList.innerHTML = renderBlock(preps);
+        }
+
+        window.toggleCookTimes = function() {
+            document.getElementById('cook-times-modal').classList.toggle('hidden');
+            window.renderCookTimes();
+        };
+        window.clearCookTimeForm = function() {
+            document.getElementById('ct-id').value = '';
+            document.getElementById('ct-name').value = '';
+            document.getElementById('ct-qty').value = '';
+            document.getElementById('ct-time').value = '';
+            document.getElementById('ct-method').value = '';
+        };
+        window.saveCookTime = function() {
+            const id = document.getElementById('ct-id').value || Date.now().toString();
+            const name = document.getElementById('ct-name').value.trim();
+            if(!name) return;
+            const newCt = {
+                id, name,
+                qty: document.getElementById('ct-qty').value.trim(),
+                time: document.getElementById('ct-time').value.trim(),
+                method: document.getElementById('ct-method').value.trim()
+            };
+            const existingIdx = state.cookTimes.findIndex(x => x.id === id);
+            if (existingIdx >= 0) state.cookTimes[existingIdx] = newCt;
+            else state.cookTimes.push(newCt);
+            
+            clearCookTimeForm();
+            window.renderCookTimes();
+            syncStateToDB();
+        };
+        window.renderCookTimes = function() {
+            const container = document.getElementById('cook-times-list');
+            if(state.cookTimes.length === 0) {
+                container.innerHTML = '<p class="text-xs text-zinc-500 italic text-center p-4">No cook times saved.</p>';
+                return;
+            }
+            container.innerHTML = state.cookTimes.sort((a,b) => a.name.localeCompare(b.name)).map(ct => `
+                <div class="bg-zinc-950 p-3 rounded-xl border border-zinc-800 flex justify-between items-start">
+                    <div class="flex-1 min-w-0 pr-2">
+                        <h4 class="font-bold text-zinc-100 text-sm truncate">${ct.name}</h4>
+                        <div class="flex flex-wrap gap-2 mt-1.5">
+                            ${ct.qty ? `<span class="text-[9px] bg-zinc-900 text-zinc-400 px-1.5 py-0.5 rounded border border-zinc-800 font-bold uppercase tracking-wider">${ct.qty}</span>` : ''}
+                            ${ct.time ? `<span class="text-[9px] font-black bg-red-950/30 text-red-400 px-1.5 py-0.5 rounded border border-red-900/50 uppercase tracking-wider">⏱ ${ct.time}</span>` : ''}
+                            ${ct.method ? `<span class="text-[9px] bg-zinc-900 text-zinc-400 px-1.5 py-0.5 rounded border border-zinc-800 font-bold uppercase tracking-wider truncate max-w-full">${ct.method}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="flex gap-1 flex-shrink-0">
+                        <button onclick="safeDelete('cookTime', '${ct.id}')" class="text-zinc-600 hover:text-red-500 p-1"><i class="ph-fill ph-trash text-lg"></i></button>
+                    </div>
+                </div>
+            `).join('');
+        };
+
+        window.updateCatTask = function(taskType) {
+            state.chores[taskType] = new Date().toISOString();
+            fireConfetti();
+            renderChores();
+            syncStateToDB();
+        };
+
+        window.toggleCatSettings = function() {
+            const set = state.chores.settings || { clawsWeeks: 4, brushWeeks: 1, foodWeeks: 4 };
+            document.getElementById('setting-claws').value = set.clawsWeeks;
+            document.getElementById('setting-brush').value = set.brushWeeks;
+            document.getElementById('setting-food').value = set.foodWeeks;
+            document.getElementById('cat-settings-modal').classList.toggle('hidden');
+        };
+
+        window.saveCatSettings = function() {
+            state.chores.settings.clawsWeeks = parseInt(document.getElementById('setting-claws').value) || 4;
+            state.chores.settings.brushWeeks = parseInt(document.getElementById('setting-brush').value) || 1;
+            state.chores.settings.foodWeeks = parseInt(document.getElementById('setting-food').value) || 4;
+            document.getElementById('cat-settings-modal').classList.add('hidden');
+            renderChores();
+            syncStateToDB();
+        };
+
+        window.toggleCatFoodForm = () => document.getElementById('cat-food-form').classList.toggle('hidden');
+
+        window.saveCatFood = function() {
+            const brand = document.getElementById('cf-brand').value.trim();
+            const flavor = document.getElementById('cf-flavor').value.trim();
+            if(!brand && !flavor) return;
+
+            state.catFoodArchive.unshift({
+                id: Date.now().toString(),
+                date: new Date().toISOString(),
+                brand, flavor
+            });
+
+            document.getElementById('cf-brand').value = '';
+            document.getElementById('cf-flavor').value = '';
+            toggleCatFoodForm();
+            fireConfetti();
+            renderChores();
+            syncStateToDB();
+        };
+
+        function renderChores() {
+            const c = state.chores;
+            const set = c.settings || { clawsWeeks: 4, brushWeeks: 1, foodWeeks: 4 };
+            
+            document.getElementById('litter-scoop-date').innerText = formatDisplayDate(c.litterPicked);
+            document.getElementById('litter-change-date').innerText = formatDisplayDate(c.litterChanged);
+            
+            document.getElementById('claws-due-date').innerHTML = calculateNextDue(c.clawsClipped, set.clawsWeeks);
+            document.getElementById('brush-due-date').innerHTML = calculateNextDue(c.brushed, set.brushWeeks);
+            
+            const lastFood = state.catFoodArchive.length > 0 ? state.catFoodArchive[0].date : null;
+            document.getElementById('food-due-date').innerHTML = calculateNextDue(lastFood, set.foodWeeks);
+
+            const arcContainer = document.getElementById('cat-food-archive');
+            if(state.catFoodArchive.length === 0) {
+                arcContainer.innerHTML = '<p class="text-[10px] text-zinc-600 italic">No food logged yet.</p>';
+            } else {
+                arcContainer.innerHTML = state.catFoodArchive.map(f => `
+                    <div class="bg-zinc-950 p-2 rounded-lg border border-zinc-800 flex justify-between items-center">
+                        <div>
+                            <span class="text-[10px] font-bold text-zinc-300 block">${formatDisplayDate(f.date)}</span>
+                            <span class="text-[11px] font-medium text-zinc-400">${f.brand} ${f.flavor ? `- ${f.flavor}` : ''}</span>
+                        </div>
+                        <button onclick="safeDelete('catFood', '${f.id}')" class="text-zinc-600 hover:text-red-500 p-1"><i class="ph-fill ph-trash text-sm"></i></button>
+                    </div>
+                `).join('');
+            }
+        }
+
+        window.toggleProfileForm = function(isEdit = false) {
+            const modal = document.getElementById('profile-form-modal');
+            modal.classList.toggle('hidden');
+            if (!modal.classList.contains('hidden')) {
+                if (isEdit && state.activeProfileId) {
+                    const p = state.profiles.find(x => x.id === state.activeProfileId);
+                    document.getElementById('profile-modal-title').innerText = "Edit Profile";
+                    document.getElementById('pf-id').value = p.id;
+                    document.getElementById('pf-name').value = p.name;
+                    document.getElementById('pf-weight').value = p.weight || '';
+                    document.getElementById('pf-activity').value = p.activity || 'sedentary';
+                    document.getElementById('pf-climate').value = p.climate || 'normal';
+                    document.getElementById('pf-delete-btn').classList.remove('hidden');
+                } else {
+                    document.getElementById('profile-modal-title').innerText = "New Profile";
+                    document.getElementById('pf-id').value = '';
+                    document.getElementById('pf-name').value = '';
+                    document.getElementById('pf-weight').value = '';
+                    document.getElementById('pf-activity').value = 'sedentary';
+                    document.getElementById('pf-climate').value = 'normal';
+                    document.getElementById('pf-delete-btn').classList.add('hidden');
+                }
+            }
+        };
+
+        window.editActiveProfile = function() {
+            if (state.activeProfileId) toggleProfileForm(true);
+            else alert("Select a profile to edit first.");
+        };
+
+        window.deleteActiveProfile = function() {
+            toggleProfileForm(); // close form
+            if (state.activeProfileId) safeDelete('profile', state.activeProfileId);
+        };
+
+        window.saveProfile = function() {
+            const id = document.getElementById('pf-id').value || Date.now().toString();
+            const name = document.getElementById('pf-name').value.trim();
+            if(!name) return;
+
+            const p = {
+                id, name,
+                weight: parseInt(document.getElementById('pf-weight').value) || 150,
+                activity: document.getElementById('pf-activity').value,
+                climate: document.getElementById('pf-climate').value,
+                waterLog: [], workouts: []
+            };
+
+            const existingIdx = state.profiles.findIndex(x => x.id === id);
+            if (existingIdx >= 0) {
+                p.waterLog = state.profiles[existingIdx].waterLog || [];
+                p.workouts = state.profiles[existingIdx].workouts || [];
+                state.profiles[existingIdx] = p;
+            } else {
+                state.profiles.push(p);
+            }
+            
+            state.activeProfileId = id;
+            toggleProfileForm();
+            renderHealth();
+            syncStateToDB();
+        };
+
+        window.switchProfile = function() {
+            state.activeProfileId = document.getElementById('health-profile-select').value;
+            renderHealth();
+            syncStateToDB();
+        };
+
+        function getWaterGoal(profile) {
+            let base = profile.weight * 0.5; // half body weight in oz
+            if (profile.activity === 'moderate') base += 12;
+            if (profile.activity === 'active') base += 24;
+            if (profile.climate === 'hot') base += 12;
+            return Math.round(base);
+        }
+
+        window.logWater = function(oz) {
+            if(!state.activeProfileId) return;
+            const p = state.profiles.find(x => x.id === state.activeProfileId);
+            if(!p) return;
+            
+            const today = new Date().toISOString().split('T')[0];
+            const existing = p.waterLog.find(w => w.date === today);
+            if(existing) existing.amount += oz;
+            else p.waterLog.push({ date: today, amount: oz });
+            
+            fireConfetti();
+            renderHealth();
+            syncStateToDB();
+        };
+
+        window.toggleWorkoutForm = () => document.getElementById('workout-form').classList.toggle('hidden');
+
+        window.saveWorkout = function() {
+            if(!state.activeProfileId) return;
+            const p = state.profiles.find(x => x.id === state.activeProfileId);
+            if(!p) return;
+
+            const type = document.getElementById('wo-type').value.trim();
+            const duration = document.getElementById('wo-duration').value.trim();
+            if(!type) return;
+
+            p.workouts.push({
+                id: Date.now().toString(),
+                date: new Date().toISOString(),
+                type, duration,
+                sets: document.getElementById('wo-sets').value,
+                reps: document.getElementById('wo-reps').value,
+                amount: document.getElementById('wo-amount').value
+            });
+
+            document.getElementById('wo-type').value = '';
+            document.getElementById('wo-duration').value = '';
+            document.getElementById('wo-sets').value = '';
+            document.getElementById('wo-reps').value = '';
+            document.getElementById('wo-amount').value = '';
+            
+            toggleWorkoutForm();
+            fireConfetti();
+            renderHealth();
+            syncStateToDB();
+        };
+
+        function renderHealth() {
+            const select = document.getElementById('health-profile-select');
+            
+            // Rebuild options ensuring dark background is hardcoded on options to fix browser dropdown visibility
+            select.innerHTML = '<option value="" class="bg-zinc-900 text-zinc-100">Select a Profile...</option>' + 
+                state.profiles.map(p => `<option value="${p.id}" class="bg-zinc-900 text-zinc-100" ${p.id === state.activeProfileId ? 'selected' : ''}>${p.name}</option>`).join('');
+
+            const noProf = document.getElementById('health-no-profile');
+            const trackers = document.getElementById('health-trackers');
+
+            if (!state.activeProfileId) {
+                noProf.classList.remove('hidden');
+                trackers.classList.add('hidden');
+                return;
+            }
+
+            const p = state.profiles.find(x => x.id === state.activeProfileId);
+            if (!p) return;
+
+            noProf.classList.add('hidden');
+            trackers.classList.remove('hidden');
+
+            // Water Render
+            const goal = getWaterGoal(p);
+            document.getElementById('water-goal-text').innerText = `Goal: ${goal} oz / day`;
+            const todayStr = new Date().toISOString().split('T')[0];
+            const todayLog = p.waterLog.find(w => w.date === todayStr);
+            document.getElementById('water-today-total').innerText = todayLog ? todayLog.amount : 0;
+
+            // Water Graph
+            let waterGraphHtml = '';
+            for(let i=6; i>=0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                const dStr = d.toISOString().split('T')[0];
+                const log = p.waterLog.find(w => w.date === dStr);
+                const amt = log ? log.amount : 0;
+                let pct = Math.min((amt / goal) * 100, 100) || 2; // min 2% for visual
+                waterGraphHtml += `<div class="flex-1 flex flex-col items-center justify-end h-full gap-1">
+                    <span class="text-[8px] font-bold text-zinc-500">${amt}</span>
+                    <div class="w-full bg-blue-900/30 rounded-t-sm relative flex items-end h-full">
+                        <div class="w-full bg-blue-500 rounded-t-sm transition-all" style="height: ${pct}%"></div>
+                    </div>
+                    <span class="text-[8px] font-bold text-zinc-600">${['S','M','T','W','T','F','S'][d.getDay()]}</span>
+                </div>`;
+            }
+            document.getElementById('water-chart').innerHTML = waterGraphHtml;
+
+            // Workout History Render
+            const sortedW = p.workouts.sort((a,b) => new Date(b.date) - new Date(a.date));
+            const histContainer = document.getElementById('workout-history');
+            if(sortedW.length === 0) {
+                histContainer.innerHTML = '<p class="text-[10px] text-zinc-600 italic">No workouts logged.</p>';
+            } else {
+                histContainer.innerHTML = sortedW.map(w => `
+                    <div class="bg-zinc-950 p-3 rounded-lg border border-zinc-800 flex justify-between items-start">
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="font-bold text-zinc-200 text-sm">${w.type}</span>
+                                ${w.duration ? `<span class="text-[9px] bg-red-950/30 border border-red-900/50 text-red-400 px-1.5 py-0.5 rounded font-black uppercase">${w.duration}</span>` : ''}
+                            </div>
+                            <div class="flex flex-wrap gap-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                                <span>${formatDisplayDate(w.date)}</span>
+                                ${w.sets || w.reps ? `<span>| ${w.sets ? w.sets+' Sets' : ''} ${w.sets&&w.reps?'x':''} ${w.reps ? w.reps+' Reps' : ''}</span>` : ''}
+                                ${w.amount ? `<span>| ${w.amount}</span>` : ''}
+                            </div>
+                        </div>
+                        <button onclick="safeDelete('workout', '${w.id}')" class="text-zinc-600 hover:text-red-500 p-1"><i class="ph-fill ph-trash text-sm"></i></button>
+                    </div>
+                `).join('');
+            }
+
+            // Workout Graph (Simple visualization of last 7 days count)
+            let wGraphHtml = '';
+            let totalMins = 0;
+            for(let i=6; i>=0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                const dStr = d.toISOString().split('T')[0];
+                const wOnDay = p.workouts.filter(w => w.date.startsWith(dStr));
+                
+                // Extremely naive duration parser for the graph text (looks for numbers)
+                wOnDay.forEach(w => {
+                    if(w.duration) {
+                        const m = w.duration.match(/\d+/);
+                        if(m) totalMins += parseInt(m[0]);
+                    }
+                });
+
+                const count = wOnDay.length;
+                wGraphHtml += `<div class="flex-1 flex flex-col items-center justify-end h-full gap-1">
+                    <div class="w-full flex flex-col-reverse items-center justify-start gap-0.5">
+                        ${Array(Math.min(count, 4)).fill('<div class="w-3 h-3 bg-red-500 rounded-sm"></div>').join('')}
+                    </div>
+                    <span class="text-[8px] font-bold text-zinc-600 mt-1">${['S','M','T','W','T','F','S'][d.getDay()]}</span>
+                </div>`;
+            }
+            document.getElementById('workout-chart').innerHTML = wGraphHtml;
+            document.getElementById('workout-total-mins').innerText = `~${totalMins} mins total`;
+        }
 
     </script>
 </body>
