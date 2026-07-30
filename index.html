@@ -859,7 +859,11 @@
                                     <h4 class="font-extrabold text-zinc-100 truncate">${g.name}</h4>
                                 </div>
                                 <div class="text-[11px] font-bold ${c.text} mt-1">Need: ${g.need} ${g.packSize ? `(${g.packSize})` : ''} <span class="text-zinc-600 mx-1">•</span> <span class="text-zinc-400">Stock: ${g.stock}</span></div>
-                                ${g.notes || g.store ? `<div class="text-[10px] font-medium text-zinc-500 mt-1 truncate">${g.store ? `🛒 ${g.store} ` : ''}${g.notes}</div>` : ''}
+                                ${g.notes || g.store ? `
+                                <div class="flex items-center gap-2 mt-2 min-w-0 overflow-hidden">
+                                    ${g.store ? `<span class="bg-zinc-950 border border-zinc-700 text-zinc-300 text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded-md flex items-center gap-1 flex-shrink-0 shadow-sm">🛒 ${g.store}</span>` : ''}
+                                    ${g.notes ? `<span class="text-[11px] text-zinc-400 italic truncate">${g.notes}</span>` : ''}
+                                </div>` : ''}
                             </div>
                             <div class="flex flex-col gap-1">
                                 <button onclick="toggleGroceryForm('${g.id}')" class="p-1.5 text-zinc-500 hover:text-zinc-200">✏️</button>
