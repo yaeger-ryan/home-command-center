@@ -166,14 +166,18 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-4 bg-zinc-950 p-4 rounded-2xl border border-zinc-800">
+                        <div class="grid grid-cols-3 gap-3 bg-zinc-950 p-4 rounded-2xl border border-zinc-800">
                             <div>
-                                <label class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Packs in Stock</label>
+                                <label class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">In Stock</label>
                                 <input type="number" id="g-stock" min="0" value="0" class="w-full p-3 bg-black border border-zinc-700 rounded-xl outline-none font-medium text-center text-zinc-200">
                             </div>
                             <div>
-                                <label class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Buy Size</label>
-                                <input type="text" id="g-buy" value="1" class="w-full p-3 bg-black border border-zinc-700 rounded-xl outline-none font-medium text-center text-zinc-200" placeholder="e.g. 1 pack of 8">
+                                <label class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Buy Amt</label>
+                                <input type="number" id="g-buy-qty" value="1" min="1" class="w-full p-3 bg-black border border-zinc-700 rounded-xl outline-none font-medium text-center text-zinc-200">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Pack Size</label>
+                                <input type="text" id="g-pack-size" class="w-full p-3 bg-black border border-zinc-700 rounded-xl outline-none font-medium text-center text-zinc-200" placeholder="e.g. bag, 8-pack">
                             </div>
                         </div>
                         
@@ -340,7 +344,10 @@
                 <div class="bg-zinc-900 p-5 rounded-3xl border border-zinc-800 shadow-xl">
                     <div class="flex items-center justify-between mb-2">
                         <label class="text-xs font-bold text-zinc-500 uppercase tracking-wider">Active Health Profile</label>
-                        <button onclick="toggleHealthProfileForm()" class="text-[10px] font-bold bg-black border border-zinc-700 text-zinc-300 px-3 py-1.5 rounded-lg hover:bg-zinc-800 transition-colors">➕ New Profile</button>
+                        <div class="flex gap-2">
+                            <button id="hp-edit-btn" onclick="editHealthProfile()" class="hidden text-[10px] font-bold bg-zinc-800 border border-zinc-700 text-zinc-300 px-3 py-1.5 rounded-lg hover:bg-zinc-700 transition-colors">✏️ Edit</button>
+                            <button onclick="toggleHealthProfileForm()" class="text-[10px] font-bold bg-black border border-zinc-700 text-zinc-300 px-3 py-1.5 rounded-lg hover:bg-zinc-800 transition-colors">➕ New Profile</button>
+                        </div>
                     </div>
                     <div class="relative bg-black rounded-xl border border-zinc-700 flex items-center p-1">
                         <div class="w-10 h-10 rounded-lg bg-cyan-950 flex items-center justify-center text-cyan-500 font-bold text-lg mr-2 shrink-0">👤</div>
@@ -353,7 +360,7 @@
 
                 <form id="health-profile-form" class="hidden bg-zinc-900 p-5 rounded-3xl shadow-xl border border-zinc-800 fade-in">
                     <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-bold text-zinc-200">Setup Health Profile</h3>
+                        <h3 id="hp-form-title" class="font-bold text-zinc-200">Setup Health Profile</h3>
                         <button type="button" onclick="toggleHealthProfileForm()" class="text-zinc-500 hover:text-zinc-300">❌</button>
                     </div>
                     <div class="space-y-4">
@@ -388,6 +395,7 @@
                         </div>
                         <div class="flex gap-3 pt-2">
                              <button type="button" onclick="toggleHealthProfileForm()" class="flex-1 bg-zinc-800 text-zinc-300 py-3 rounded-xl font-bold hover:bg-zinc-700 transition-colors">Cancel</button>
+                             <button type="button" id="hp-delete-btn" onclick="deleteHealthProfile()" class="hidden flex-none bg-red-950 text-red-500 border border-red-900 px-4 py-3 rounded-xl font-bold hover:bg-red-900 hover:text-red-100 transition-colors">🗑️</button>
                              <button type="submit" class="flex-1 bg-cyan-900 text-white py-3 rounded-xl font-bold hover:bg-cyan-800 transition-colors shadow-lg">Save Profile</button>
                         </div>
                     </div>
@@ -558,6 +566,7 @@
 
         let editingGroceryId = null;
         let activeProfileId = null;
+        let editingProfileId = null;
 
         // --- Confetti Engine ---
         function triggerConfetti() {
@@ -868,7 +877,8 @@
                 store: document.getElementById('g-store').value,
                 notes: document.getElementById('g-notes').value,
                 stockQty: parseFloat(document.getElementById('g-stock').value) || 0,
-                buyQty: document.getElementById('g-buy').value || '1',
+                buyQty: parseFloat(document.getElementById('g-buy-qty').value) || 1,
+                packSize: document.getElementById('g-pack-size').value || '',
                 need: document.getElementById('g-need').checked,
                 lastBought: null
             };
@@ -896,7 +906,18 @@
             document.getElementById('g-store').value = g.store || '';
             document.getElementById('g-notes').value = g.notes || '';
             document.getElementById('g-stock').value = g.stockQty;
-            document.getElementById('g-buy').value = g.buyQty || '1';
+            
+            // Backwards compatibility for old string-based buyQty
+            let parsedBuyQty = g.buyQty;
+            let parsedPackSize = g.packSize || '';
+            if (typeof g.buyQty === 'string') {
+                const match = String(g.buyQty).match(/\d+/);
+                parsedBuyQty = match ? parseFloat(match[0]) : 1;
+                if(!g.packSize) parsedPackSize = g.buyQty;
+            }
+            document.getElementById('g-buy-qty').value = parsedBuyQty || 1;
+            document.getElementById('g-pack-size').value = parsedPackSize;
+            
             document.getElementById('g-need').checked = g.need;
             
             const select = document.getElementById('g-cat-select');
@@ -924,8 +945,7 @@
                 state.groceries[idx].need = false;
                 state.groceries[idx].lastBought = new Date().toISOString();
                 
-                const buyQText = String(state.groceries[idx].buyQty).match(/\d+/);
-                const buyQ = buyQText ? parseFloat(buyQText[0]) : 1;
+                let buyQ = parseFloat(state.groceries[idx].buyQty) || 1;
                 state.groceries[idx].stockQty = (parseFloat(state.groceries[idx].stockQty) || 0) + buyQ;
                 
                 saveData(); renderGroceries(); renderMeals();
@@ -972,7 +992,7 @@
                         <div class="flex flex-wrap gap-2 text-[11px] font-bold text-zinc-400 bg-black p-2 rounded-lg border border-zinc-800 w-fit">
                             ${item.store ? `<span>🏬 <span class="text-zinc-200">${item.store}</span></span> • ` : ''}
                             <span>Stock: <span class="text-zinc-200">${item.stockQty}</span></span> • 
-                            <span>Buy size: <span class="text-zinc-200">${item.buyQty}</span></span>
+                            <span>Need: <span class="text-zinc-200">${item.buyQty || 1} ${item.packSize ? `(${item.packSize})` : ''}</span></span>
                         </div>
                         ${lowStockBadge}
                         ${!isNeeded && item.lastBought ? `<span class="text-[10px] font-semibold text-zinc-500 mt-2 block uppercase tracking-wider">Last bought: ${formatDate(item.lastBought)}</span>` : ''}
@@ -1322,8 +1342,46 @@
 
         function toggleHealthProfileForm() {
             const form = document.getElementById('health-profile-form');
-            if(form.classList.contains('hidden')) { form.classList.remove('hidden'); form.reset(); } 
+            if(form.classList.contains('hidden')) { 
+                form.classList.remove('hidden'); 
+                form.reset(); 
+                editingProfileId = null;
+                document.getElementById('hp-form-title').innerText = "Setup Health Profile";
+                document.getElementById('hp-delete-btn').classList.add('hidden');
+            } 
             else { form.classList.add('hidden'); }
+        }
+
+        function editHealthProfile() {
+            if(!activeProfileId) return;
+            const p = state.health.profiles.find(x => x.id === activeProfileId);
+            if(!p) return;
+            
+            editingProfileId = p.id;
+            document.getElementById('hp-name').value = p.name || '';
+            document.getElementById('hp-weight').value = p.weight || '';
+            document.getElementById('hp-height').value = p.height || '';
+            document.getElementById('hp-age').value = p.age || '';
+            document.getElementById('hp-gender').value = p.gender || 'Male';
+            document.getElementById('hp-activity').value = p.activity || 'sedentary';
+            document.getElementById('hp-climate').value = p.climate || 'temperate';
+            
+            document.getElementById('hp-form-title').innerText = "Edit Health Profile";
+            document.getElementById('hp-delete-btn').classList.remove('hidden');
+            
+            document.getElementById('health-profile-form').classList.remove('hidden');
+        }
+
+        function deleteHealthProfile() {
+            if(!editingProfileId) return;
+            state.health.profiles = state.health.profiles.filter(p => p.id !== editingProfileId);
+            state.health.waterLogs = state.health.waterLogs.filter(w => w.profileId !== editingProfileId);
+            state.health.workoutLogs = state.health.workoutLogs.filter(w => w.profileId !== editingProfileId);
+            activeProfileId = null;
+            saveData(); 
+            document.getElementById('health-profile-form').classList.add('hidden');
+            renderHealth(); 
+            showToast("Profile Deleted");
         }
 
         document.getElementById('health-profile-form').addEventListener('submit', (e) => {
@@ -1332,8 +1390,8 @@
             const act = document.getElementById('hp-activity').value;
             const clim = document.getElementById('hp-climate').value;
             
-            const newProfile = {
-                id: Date.now().toString(),
+            const profileData = {
+                id: editingProfileId || Date.now().toString(),
                 name: document.getElementById('hp-name').value,
                 weight: w,
                 height: document.getElementById('hp-height').value,
@@ -1343,9 +1401,17 @@
                 dailyWaterGoal: calcWaterGoal(w, act, clim)
             };
             
-            state.health.profiles.push(newProfile);
-            activeProfileId = newProfile.id;
-            saveData(); toggleHealthProfileForm(); renderHealth(); showToast("Profile Created");
+            if (editingProfileId) {
+                const idx = state.health.profiles.findIndex(p => p.id === editingProfileId);
+                if(idx > -1) state.health.profiles[idx] = profileData;
+                showToast("Profile Updated");
+            } else {
+                state.health.profiles.push(profileData);
+                activeProfileId = profileData.id;
+                showToast("Profile Created");
+            }
+            
+            saveData(); document.getElementById('health-profile-form').classList.add('hidden'); renderHealth(); 
         });
 
         function switchHealthProfile() {
@@ -1402,9 +1468,15 @@
             const select = document.getElementById('health-profile-select');
             select.innerHTML = '<option value="">Select a Profile...</option>' + state.health.profiles.map(p => `<option value="${p.id}" ${p.id === activeProfileId ? 'selected' : ''}>${p.name}</option>`).join('');
             
+            const editBtn = document.getElementById('hp-edit-btn');
             const dash = document.getElementById('health-dashboard');
-            if(!activeProfileId) { dash.classList.add('hidden'); return; }
+            if(!activeProfileId) { 
+                dash.classList.add('hidden'); 
+                editBtn.classList.add('hidden');
+                return; 
+            }
             dash.classList.remove('hidden');
+            editBtn.classList.remove('hidden');
 
             const profile = state.health.profiles.find(p => p.id === activeProfileId);
             document.getElementById('water-goal-display').innerText = profile.dailyWaterGoal;
