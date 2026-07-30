@@ -795,48 +795,114 @@
             saveData(); renderCategories(); populateCategorySelect();
         };
 
+        // --- Color Generator for Categories ---
+        const colorPalette = [
+            { text: 'text-red-400', bg: 'bg-red-950/30', border: 'border-red-900/50', dot: 'bg-red-500' },
+            { text: 'text-orange-400', bg: 'bg-orange-950/30', border: 'border-orange-900/50', dot: 'bg-orange-500' },
+            { text: 'text-emerald-400', bg: 'bg-emerald-950/30', border: 'border-emerald-900/50', dot: 'bg-emerald-500' },
+            { text: 'text-blue-400', bg: 'bg-blue-950/30', border: 'border-blue-900/50', dot: 'bg-blue-500' },
+            { text: 'text-purple-400', bg: 'bg-purple-950/30', border: 'border-purple-900/50', dot: 'bg-purple-500' },
+            { text: 'text-pink-400', bg: 'bg-pink-950/30', border: 'border-pink-900/50', dot: 'bg-pink-500' },
+            { text: 'text-teal-400', bg: 'bg-teal-950/30', border: 'border-teal-900/50', dot: 'bg-teal-500' },
+            { text: 'text-amber-400', bg: 'bg-amber-950/30', border: 'border-amber-900/50', dot: 'bg-amber-500' }
+        ];
+
+        // Hardcode logical colors for the defaults so they never collide
+        const defaultCatColors = {
+            "Fruits": colorPalette[5], // Pink
+            "Meats": colorPalette[0], // Red
+            "Breads & Grains": colorPalette[7], // Amber
+            "Vegetables": colorPalette[2], // Emerald
+            "Dips, Sauces, & Spreads": colorPalette[4], // Purple
+            "Beverages": colorPalette[3], // Blue
+            "Snacks": colorPalette[1], // Orange
+            "Packaged Meals": colorPalette[6] // Teal
+        };
+        
+        window.getCatColor = function(catName) {
+            // 1. If it's a default category, use the guaranteed unique color
+            if (defaultCatColors[catName]) return defaultCatColors[catName];
+
+            // 2. If it's a custom category you added, hash it to pick a random color
+            let hash = 0;
+            for (let i = 0; i < catName.length; i++) hash = catName.charCodeAt(i) + ((hash << 5) - hash);
+            return colorPalette[Math.abs(hash) % colorPalette.length];
+        };
+
         window.renderGroceries = function() {
-            const needed = state.groceries.filter(g => g.need > 0).sort((a,b) => a.category.localeCompare(b.category));
-            const stocked = state.groceries.filter(g => g.need <= 0).sort((a,b) => a.category.localeCompare(b.category));
+            const needed = state.groceries.filter(g => g.need > 0);
+            const stocked = state.groceries.filter(g => g.need <= 0);
 
-            document.getElementById('sl-items').innerHTML = needed.length ? needed.map(g => `
-                <div class="bg-zinc-900 border border-red-900/30 p-4 rounded-2xl flex items-center gap-3 shadow-sm">
-                    <button onclick="markPickedUp('${g.id}')" class="w-10 h-10 flex-shrink-0 bg-red-950/30 text-red-500 border border-red-900/50 rounded-xl flex items-center justify-center hover:bg-red-900 hover:text-red-100 transition-colors">✓</button>
-                    <div class="flex-1 min-w-0">
-                        <div class="flex justify-between">
-                            <h4 class="font-extrabold text-zinc-100 truncate">${g.name}</h4>
-                            <span class="text-[10px] font-bold bg-zinc-950 text-zinc-500 px-2 py-1 rounded-md ml-2">${g.category}</span>
+            function groupAndRender(items, isShopping) {
+                if(!items.length) return '<p class="text-xs text-zinc-600 font-bold italic py-2 text-center">List is empty.</p>';
+                
+                // Group items by category
+                const grouped = {};
+                items.forEach(g => {
+                    if(!grouped[g.category]) grouped[g.category] = [];
+                    grouped[g.category].push(g);
+                });
+                
+                // Render categories alphabetically
+                return Object.keys(grouped).sort().map(cat => {
+                    const c = getCatColor(cat);
+                    
+                    // Render items within the category
+                    const itemsHtml = grouped[cat].sort((a,b)=>a.name.localeCompare(b.name)).map(g => {
+                        const isLow = g.stock <= 2 && !isShopping;
+                        
+                        return isShopping ? `
+                        <div class="bg-zinc-900 border ${c.border} p-4 rounded-2xl flex items-center gap-3 shadow-sm mb-3 last:mb-0">
+                            <button onclick="markPickedUp('${g.id}')" class="w-10 h-10 flex-shrink-0 ${c.bg} ${c.text} border ${c.border} rounded-xl flex items-center justify-center hover:bg-zinc-800 transition-colors">✓</button>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex justify-between">
+                                    <h4 class="font-extrabold text-zinc-100 truncate">${g.name}</h4>
+                                </div>
+                                <div class="text-[11px] font-bold ${c.text} mt-1">Need: ${g.need} ${g.packSize ? `(${g.packSize})` : ''} <span class="text-zinc-600 mx-1">•</span> <span class="text-zinc-400">Stock: ${g.stock}</span></div>
+                                ${g.notes || g.store ? `<div class="text-[10px] font-medium text-zinc-500 mt-1 truncate">${g.store ? `🛒 ${g.store} ` : ''}${g.notes}</div>` : ''}
+                            </div>
+                            <div class="flex flex-col gap-1">
+                                <button onclick="toggleGroceryForm('${g.id}')" class="p-1.5 text-zinc-500 hover:text-zinc-200">✏️</button>
+                                <button onclick="toggleCart('${g.id}', 0)" class="p-1.5 text-zinc-600 hover:text-red-500 text-xs font-bold">Rem</button>
+                            </div>
                         </div>
-                        <div class="text-[11px] font-bold text-red-400 mt-1">Need: ${g.need} ${g.packSize ? `(${g.packSize})` : ''} <span class="text-zinc-600 mx-1">•</span> <span class="text-zinc-400">Stock: ${g.stock}</span></div>
-                        ${g.notes || g.store ? `<div class="text-[10px] font-medium text-zinc-500 mt-1 truncate">${g.store ? `🛒 ${g.store} ` : ''}${g.notes}</div>` : ''}
+                        ` : `
+                        <div class="bg-zinc-900 border ${isLow ? 'border-orange-900/50' : 'border-zinc-800'} p-4 rounded-2xl flex items-center opacity-80 hover:opacity-100 transition-opacity mb-3 last:mb-0">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2">
+                                    <h4 class="font-bold text-zinc-300 truncate">${g.name}</h4>
+                                    ${isLow ? '<span class="text-[9px] bg-orange-900/30 text-orange-500 px-1.5 py-0.5 rounded font-black uppercase">Low</span>' : ''}
+                                </div>
+                                <div class="text-[10px] font-bold text-zinc-500 mt-1 uppercase tracking-wider">
+                                    Stock: <span class="${isLow ? 'text-orange-400' : 'text-zinc-300'}">${g.stock}</span> ${g.packSize ? `(${g.packSize})` : ''} • Last: ${formatCTDate(g.lastBought)}
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="toggleCart('${g.id}', 1)" class="text-xs font-bold bg-zinc-950 border border-zinc-700 text-zinc-400 px-3 py-2 rounded-xl hover:text-zinc-100 transition-colors whitespace-nowrap">+ Cart</button>
+                                <button onclick="toggleGroceryForm('${g.id}')" class="p-1.5 text-zinc-500 hover:text-zinc-200">✏️</button>
+                                <button onclick="promptDelete('grocery', '${g.id}')" class="p-1.5 text-zinc-600 hover:text-red-500">🗑️</button>
+                            </div>
+                        </div>
+                        `;
+                    }).join('');
+                    
+                    // Wrap the category's items in a visually distinct container
+                    return `
+                    <div class="mb-6 border border-zinc-800/50 bg-zinc-900/30 rounded-3xl p-4">
+                        <h4 class="text-xs font-black uppercase tracking-widest ${c.text} mb-3 flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full ${c.dot}"></span>
+                            ${cat}
+                        </h4>
+                        <div>
+                            ${itemsHtml}
+                        </div>
                     </div>
-                    <div class="flex flex-col gap-1">
-                        <button onclick="toggleGroceryForm('${g.id}')" class="p-1.5 text-zinc-500 hover:text-zinc-200">✏️</button>
-                        <button onclick="toggleCart('${g.id}', 0)" class="p-1.5 text-zinc-600 hover:text-red-500 text-xs font-bold">Remove</button>
-                    </div>
-                </div>
-            `).join('') : '<p class="text-xs text-zinc-600 font-bold italic py-2 text-center">List is empty.</p>';
+                    `;
+                }).join('');
+            }
 
-            document.getElementById('inv-items').innerHTML = stocked.length ? stocked.map(g => {
-                const isLow = g.stock <= 2;
-                return `
-                <div class="bg-zinc-900 border ${isLow ? 'border-orange-900/50' : 'border-zinc-800'} p-4 rounded-2xl flex items-center opacity-80 hover:opacity-100 transition-opacity">
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2">
-                            <h4 class="font-bold text-zinc-300 truncate">${g.name}</h4>
-                            ${isLow ? '<span class="text-[9px] bg-orange-900/30 text-orange-500 px-1.5 py-0.5 rounded font-black uppercase">Low</span>' : ''}
-                        </div>
-                        <div class="text-[10px] font-bold text-zinc-500 mt-1 uppercase tracking-wider">
-                            Stock: <span class="${isLow ? 'text-orange-400' : 'text-zinc-300'}">${g.stock}</span> ${g.packSize ? `(${g.packSize})` : ''} • Last: ${formatCTDate(g.lastBought)}
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <button onclick="toggleCart('${g.id}', 1)" class="text-xs font-bold bg-zinc-950 border border-zinc-700 text-zinc-400 px-3 py-2 rounded-xl hover:text-zinc-100 transition-colors whitespace-nowrap">+ Cart</button>
-                        <button onclick="toggleGroceryForm('${g.id}')" class="p-1.5 text-zinc-500 hover:text-zinc-200">✏️</button>
-                        <button onclick="promptDelete('grocery', '${g.id}')" class="p-1.5 text-zinc-600 hover:text-red-500">🗑️</button>
-                    </div>
-                </div>
-            `}).join('') : '';
+            document.getElementById('sl-items').innerHTML = groupAndRender(needed, true);
+            document.getElementById('inv-items').innerHTML = groupAndRender(stocked, false);
         };
 
         // --- Safe Deletion Modal Logic ---
