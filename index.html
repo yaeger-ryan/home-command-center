@@ -2,666 +2,1344 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Home Command Center</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-
     <style>
-        body { 
-            font-family: 'Inter', sans-serif; 
-            background-color: #09090b; /* zinc-950 */
-            color: #e4e4e7; /* zinc-200 */
-            color-scheme: dark;
-        }
+        body { font-family: 'Inter', sans-serif; background-color: #09090b; color: #f4f4f5; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .fade-in { animation: fadeIn 0.2s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         
-        /* Dark Mode Scrollbar */
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        /* Goth Dark Mode Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #09090b; }
         ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
-
-        .fade-in { animation: fadeIn 0.3s ease-in-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        .pulse-timer { animation: pulseRed 1.5s infinite; }
-        @keyframes pulseRed { 0% { box-shadow: 0 0 0 0 rgba(153,27,27, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(153,27,27, 0); } 100% { box-shadow: 0 0 0 0 rgba(153,27,27, 0); } }
-
-        /* Custom Toast Modal */
-        #toast-container { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); z-index: 1000; display: flex; flex-direction: column; gap: 10px; width: 90%; max-width: 400px; pointer-events: none; }
-        .toast { background: #18181b; border: 1px solid #3f3f46; color: #fff; padding: 16px 20px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.8); font-weight: bold; animation: slideDown 0.3s ease-out forwards; display: flex; align-items: center; gap: 12px; pointer-events: auto; }
-        .toast.toast-alert { border-color: #7f1d1d; background: #450a0a; color: #fca5a5; }
-        @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
-        
-        /* Better Focus States */
-        input:focus, select:focus { border-color: #7f1d1d; box-shadow: 0 0 0 1px #7f1d1d; }
     </style>
 </head>
-<body class="antialiased selection:bg-red-900 selection:text-white pb-24">
+<body class="min-h-screen flex flex-col antialiased selection:bg-red-900 selection:text-white">
 
-    <div id="toast-container"></div>
-    <audio id="timer-sound" src="https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg" preload="auto" loop></audio>
-
-    <div id="auth-view" class="hidden flex h-screen items-center justify-center p-4 bg-black">
-        <form id="auth-form" class="w-full max-w-sm bg-zinc-900 border border-zinc-800 p-8 rounded-3xl shadow-[0_0_40px_rgba(153,27,27,0.1)] flex flex-col items-center fade-in">
-            <div class="bg-black border border-zinc-800 p-4 rounded-full mb-4 text-red-800 text-3xl shadow-inner">🗝️</div>
-            <h2 class="text-2xl font-extrabold mb-2 text-zinc-100">Command Center</h2>
-            <p class="text-zinc-500 mb-6 text-center text-sm font-medium">Enter the passcode to access.</p>
-            
-            <input type="password" id="pin-input" placeholder="****" class="w-full p-4 mb-2 bg-black border border-zinc-800 rounded-2xl text-center text-3xl tracking-[0.5em] font-bold outline-none focus:border-red-900 focus:bg-zinc-950 transition-all text-zinc-100" maxlength="4" inputmode="numeric">
-            <p id="auth-error" class="text-red-500 text-sm mb-4 font-semibold hidden">Incorrect Passcode.</p>
-            
-            <button type="submit" class="w-full bg-red-950 border border-red-900 text-red-100 py-4 rounded-2xl font-bold hover:bg-red-900 transition-colors shadow-lg shadow-red-900/20 text-lg">Unlock</button>
-        </form>
+    <div id="auth-screen" class="fixed inset-0 bg-zinc-950 z-50 flex items-center justify-center p-4 fade-in">
+        <div class="bg-zinc-900 border border-zinc-800 p-8 rounded-3xl shadow-2xl max-w-sm w-full flex flex-col items-center">
+            <div class="text-4xl mb-4">🗝️</div>
+            <h2 class="text-2xl font-extrabold text-zinc-100 mb-2 tracking-tight">Command Center</h2>
+            <p class="text-zinc-500 mb-6 text-sm text-center font-medium">Enter passcode to unlock.</p>
+            <input type="password" id="pin-input" class="w-full bg-zinc-950 border border-zinc-700 text-center text-3xl tracking-[0.5em] py-4 rounded-xl text-zinc-100 focus:border-red-900 focus:ring-1 focus:ring-red-900 outline-none transition-all" maxlength="4" placeholder="••••">
+            <p id="auth-error" class="text-red-500 text-sm mt-3 hidden font-bold">Incorrect Passcode</p>
+            <button onclick="checkPin()" class="w-full bg-red-950 text-red-500 border border-red-900 py-4 rounded-xl font-bold mt-4 hover:bg-red-900 hover:text-red-100 transition-colors shadow-lg shadow-red-900/20">Unlock</button>
+        </div>
     </div>
 
-    <div id="app-view" class="hidden min-h-screen flex flex-col relative">
-        
-        <header class="bg-zinc-950/95 backdrop-blur-md border-b border-zinc-800 p-4 flex flex-col gap-4 sticky top-0 z-30 shadow-md">
-            <div class="flex justify-between items-center w-full">
-                <h1 class="font-extrabold text-xl tracking-tight flex items-center gap-2 text-zinc-100">
-                    <div class="w-2.5 h-6 bg-red-900 rounded-full shadow-[0_0_10px_rgba(153,27,27,0.8)]"></div>
-                    Home Base
-                </h1>
-                <div class="flex items-center gap-2 sm:gap-3">
-                    <span id="sync-status" class="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-zinc-500 bg-zinc-900 border border-zinc-800 px-2 py-1.5 rounded-md">
-                        <span class="w-2 h-2 rounded-full bg-zinc-600"></span> Local
-                    </span>
-                    <button onclick="toggleDataModal()" class="text-sm font-bold bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 w-8 h-8 flex items-center justify-center rounded-lg transition-colors" title="Data Backup/Restore">💾</button>
-                    <button onclick="lockApp()" class="text-sm font-bold bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 px-4 py-1.5 rounded-lg transition-colors">Lock</button>
-                </div>
+    <header class="bg-zinc-950 border-b border-zinc-900 p-4 sticky top-0 z-40 flex justify-between items-center">
+        <h1 class="font-black text-xl text-zinc-100 tracking-tighter flex items-center gap-2">
+            <div class="w-2 h-6 bg-red-900 rounded-full"></div>
+            HOME BASE
+        </h1>
+        <div class="flex items-center gap-3">
+            <!-- Floating Timer -->
+            <div id="active-timer" class="hidden items-center gap-2 bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded-lg text-sm font-bold text-red-400">
+                <span>⏱️ <span id="timer-display">00:00</span></span>
+                <button onclick="dismissTimer()" id="timer-dismiss-btn" class="hidden ml-2 text-xs bg-red-950 text-red-100 px-2 py-1 rounded hover:bg-red-900 transition-colors">Dismiss</button>
             </div>
-            
-            <!-- Global Cooking Timer UI -->
-            <div id="timer-ui" class="flex items-center justify-between bg-black border border-zinc-800 p-2.5 rounded-xl transition-all">
-                <div class="flex items-center gap-3">
-                    <span class="text-xl opacity-80 pl-1">⏱️</span>
-                    <span id="timer-display" class="font-mono font-bold text-zinc-300 text-xl tracking-wider">00:00</span>
-                </div>
-                
-                <div id="timer-controls" class="flex items-center gap-2">
-                    <input type="number" id="timer-input" placeholder="Min" class="w-16 bg-zinc-900 border border-zinc-700 rounded-lg p-2 text-center text-sm font-bold text-zinc-200 outline-none focus:border-red-900" min="1">
-                    <button onclick="startTimerBtn()" class="bg-red-950 border border-red-900 text-red-400 px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-900 hover:text-red-100 transition-colors">Start</button>
-                </div>
-                
-                <div id="timer-active-controls" class="hidden items-center gap-2">
-                    <button onclick="stopTimer()" class="bg-zinc-800 border border-zinc-700 text-zinc-300 px-4 py-2 rounded-lg text-sm font-bold hover:bg-zinc-700 hover:text-white transition-colors">Cancel</button>
-                </div>
+            <button onclick="toggleTimerModal()" class="text-zinc-500 hover:text-zinc-300 transition-colors p-2 bg-zinc-900 rounded-lg border border-zinc-800">⏱️</button>
+            <button onclick="toggleDataModal()" class="text-zinc-500 hover:text-zinc-300 transition-colors p-2 bg-zinc-900 rounded-lg border border-zinc-800">💾</button>
+            <button onclick="lockApp()" class="text-xs font-bold bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 px-3 py-2 rounded-lg transition-colors">LOCK</button>
+        </div>
+    </header>
 
-                <div id="timer-dismiss-controls" class="hidden items-center gap-2">
-                    <button onclick="dismissTimer()" class="bg-red-600 text-white shadow-[0_0_15px_rgba(220,38,38,0.6)] px-5 py-2 rounded-lg text-sm font-extrabold hover:bg-red-500 transition-all animate-pulse">STOP</button>
-                </div>
+    <nav class="flex bg-zinc-950 border-b border-zinc-900 overflow-x-auto no-scrollbar shadow-sm sticky top-[73px] z-30">
+        <button onclick="switchTab('groceries')" id="tab-groceries" class="flex-1 min-w-[80px] py-3 flex flex-col items-center gap-1 transition-colors border-b-2 border-red-900 text-red-500">
+            <span class="text-lg">🛒</span><span class="text-[10px] font-bold uppercase tracking-wider">Groceries</span>
+        </button>
+        <button onclick="switchTab('tasks')" id="tab-tasks" class="flex-1 min-w-[80px] py-3 flex flex-col items-center gap-1 transition-colors border-b-2 border-transparent text-zinc-600 hover:text-zinc-400">
+            <span class="text-lg">📜</span><span class="text-[10px] font-bold uppercase tracking-wider">Tasks</span>
+        </button>
+        <button onclick="switchTab('meals')" id="tab-meals" class="flex-1 min-w-[80px] py-3 flex flex-col items-center gap-1 transition-colors border-b-2 border-transparent text-zinc-600 hover:text-zinc-400">
+            <span class="text-lg">🥩</span><span class="text-[10px] font-bold uppercase tracking-wider">Prep</span>
+        </button>
+        <button onclick="switchTab('dinners')" id="tab-dinners" class="flex-1 min-w-[80px] py-3 flex flex-col items-center gap-1 transition-colors border-b-2 border-transparent text-zinc-600 hover:text-zinc-400">
+            <span class="text-lg">🍷</span><span class="text-[10px] font-bold uppercase tracking-wider">Dinners</span>
+        </button>
+        <button onclick="switchTab('chores')" id="tab-chores" class="flex-1 min-w-[80px] py-3 flex flex-col items-center gap-1 transition-colors border-b-2 border-transparent text-zinc-600 hover:text-zinc-400">
+            <span class="text-lg">🐈‍⬛</span><span class="text-[10px] font-bold uppercase tracking-wider">Chores</span>
+        </button>
+        <button onclick="switchTab('health')" id="tab-health" class="flex-1 min-w-[80px] py-3 flex flex-col items-center gap-1 transition-colors border-b-2 border-transparent text-zinc-600 hover:text-zinc-400">
+            <span class="text-lg">🖤</span><span class="text-[10px] font-bold uppercase tracking-wider">Health</span>
+        </button>
+    </nav>
+
+    <main class="p-4 flex-1 max-w-2xl mx-auto w-full pb-20 relative">
+        <div id="view-groceries" class="block fade-in space-y-6">
+            <div class="flex justify-between items-center">
+                <h2 class="text-xl font-extrabold text-zinc-100 tracking-tight">Inventory & List</h2>
+                <button onclick="toggleGroceryForm()" class="bg-red-950 text-red-500 border border-red-900 px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-red-900/20 hover:bg-red-900 hover:text-red-100 transition-colors">+ Add Item</button>
             </div>
-        </header>
 
-        <nav class="flex bg-zinc-950 border-b border-zinc-800 overflow-x-auto no-scrollbar sticky top-[130px] z-20 shadow-md shadow-black/50">
-            <button onclick="switchTab('groceries')" id="tab-groceries" class="tab-btn flex-1 min-w-[70px] py-3 flex flex-col items-center gap-1 border-b-2 border-red-900 text-red-600 bg-zinc-900/50 transition-colors">
-                <span class="text-xl grayscale opacity-80">🥩</span><span class="text-[10px] font-bold uppercase tracking-wide">Groceries</span>
-            </button>
-            <button onclick="switchTab('todos')" id="tab-todos" class="tab-btn flex-1 min-w-[70px] py-3 flex flex-col items-center gap-1 border-b-2 border-transparent text-zinc-600 hover:text-zinc-400 hover:bg-zinc-900/30 transition-colors">
-                <span class="text-xl grayscale opacity-80">📜</span><span class="text-[10px] font-bold uppercase tracking-wide">Tasks</span>
-            </button>
-            <button onclick="switchTab('meals')" id="tab-meals" class="tab-btn flex-1 min-w-[70px] py-3 flex flex-col items-center gap-1 border-b-2 border-transparent text-zinc-600 hover:text-zinc-400 hover:bg-zinc-900/30 transition-colors">
-                <span class="text-xl grayscale opacity-80">🍷</span><span class="text-[10px] font-bold uppercase tracking-wide">Meals</span>
-            </button>
-            <button onclick="switchTab('chores')" id="tab-chores" class="tab-btn flex-1 min-w-[70px] py-3 flex flex-col items-center gap-1 border-b-2 border-transparent text-zinc-600 hover:text-zinc-400 hover:bg-zinc-900/30 transition-colors">
-                <span class="text-xl grayscale opacity-80">🐈‍⬛</span><span class="text-[10px] font-bold uppercase tracking-wide">Chores</span>
-            </button>
-            <button onclick="switchTab('health')" id="tab-health" class="tab-btn flex-1 min-w-[70px] py-3 flex flex-col items-center gap-1 border-b-2 border-transparent text-zinc-600 hover:text-zinc-400 hover:bg-zinc-900/30 transition-colors">
-                <span class="text-xl grayscale opacity-80">🩸</span><span class="text-[10px] font-bold uppercase tracking-wide">Health</span>
-            </button>
-        </nav>
-
-        <main class="p-4 flex-1 max-w-2xl mx-auto w-full">
-            
-            <div id="view-groceries" class="tab-content space-y-6">
-                <div class="flex justify-between items-center">
-                    <h2 class="text-xl font-extrabold text-zinc-100">Inventory & List</h2>
-                    <button onclick="toggleGroceryForm()" class="bg-red-950 border border-red-900 text-red-100 px-4 py-2.5 rounded-xl text-sm font-bold shadow-md shadow-red-900/20 hover:bg-red-900 transition-colors flex items-center gap-2">
-                        <span id="g-form-icon" class="text-red-500">➕</span> <span id="g-form-text">Add Item</span>
-                    </button>
+            <!-- Categories Editor -->
+            <div class="bg-zinc-900 p-4 rounded-2xl border border-zinc-800">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Manage Categories</h3>
+                    <button onclick="toggleCategoryEdit()" class="text-xs text-red-500 font-bold hover:text-red-400">Edit</button>
                 </div>
-
-                <form id="grocery-form" class="hidden bg-zinc-900 p-5 rounded-3xl shadow-xl border border-zinc-800 fade-in">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 id="g-form-title" class="font-bold text-zinc-200">New Grocery Item</h3>
-                        <button type="button" onclick="toggleGroceryForm()" class="text-zinc-500 hover:text-zinc-300">❌</button>
-                    </div>
-                    <input type="hidden" id="g-id">
-                    <div class="space-y-4">
-                        <div>
-                            <label class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Item Name *</label>
-                            <input type="text" id="g-name" required class="w-full p-3 bg-black border border-zinc-800 rounded-xl outline-none font-medium text-zinc-200" placeholder="e.g. Oat Milk">
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Category</label>
-                                <select id="g-cat-select" onchange="checkCustomCategory()" class="w-full p-3 bg-black border border-zinc-800 rounded-xl outline-none font-medium text-zinc-200">
-                                    <option>Fruits</option><option>Meats</option><option>Breads & Grains</option>
-                                    <option>Vegetables</option><option>Dips, Sauces & Spreads</option><option>Beverages</option>
-                                    <option>Snacks</option><option>Packaged Meals</option><option value="custom">Other (Custom)</option>
-                                </select>
-                                <input type="text" id="g-cat-custom" class="hidden mt-2 w-full p-3 bg-black border border-zinc-800 rounded-xl outline-none font-medium text-zinc-200" placeholder="Enter custom category">
-                            </div>
-                            <div>
-                                <label class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Specific Type</label>
-                                <input type="text" id="g-type" class="w-full p-3 bg-black border border-zinc-800 rounded-xl outline-none font-medium text-zinc-200" placeholder="e.g. Vanilla, Whole Wheat">
-                            </div>
-                        </div>
-                        
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Preferred Store</label>
-                                <input type="text" id="g-store" class="w-full p-3 bg-black border border-zinc-800 rounded-xl outline-none font-medium text-zinc-200" placeholder="e.g. Target">
-                            </div>
-                            <div>
-                                <label class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Notes</label>
-                                <input type="text" id="g-notes" class="w-full p-3 bg-black border border-zinc-800 rounded-xl outline-none font-medium text-zinc-200" placeholder="Brand, specific needs...">
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-3 gap-3 bg-zinc-950 p-4 rounded-2xl border border-zinc-800">
-                            <div>
-                                <label class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">In Stock</label>
-                                <input type="number" id="g-stock" min="0" value="0" class="w-full p-3 bg-black border border-zinc-700 rounded-xl outline-none font-medium text-center text-zinc-200">
-                            </div>
-                            <div>
-                                <label class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Buy Amt</label>
-                                <input type="number" id="g-buy-qty" value="1" min="1" class="w-full p-3 bg-black border border-zinc-700 rounded-xl outline-none font-medium text-center text-zinc-200">
-                            </div>
-                            <div>
-                                <label class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Pack Size</label>
-                                <input type="text" id="g-pack-size" class="w-full p-3 bg-black border border-zinc-700 rounded-xl outline-none font-medium text-center text-zinc-200" placeholder="e.g. bag, 8-pack">
-                            </div>
-                        </div>
-                        
-                        <label class="flex items-center gap-3 p-4 bg-black rounded-xl border border-zinc-800 cursor-pointer hover:border-red-900 transition-colors">
-                            <input type="checkbox" id="g-need" class="w-6 h-6 rounded accent-red-900 bg-zinc-900 border-zinc-700">
-                            <span class="font-bold text-zinc-300">Add to Shopping List Now</span>
-                        </label>
-                        <div class="flex gap-3">
-                            <button type="button" onclick="toggleGroceryForm()" class="flex-1 bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold hover:bg-zinc-700 transition-colors border border-zinc-700">Cancel</button>
-                            <button type="submit" class="flex-1 bg-red-900 text-white py-3.5 rounded-xl font-bold hover:bg-red-800 transition-colors shadow-lg">Save Item</button>
-                        </div>
-                    </div>
-                </form>
-
-                <div>
-                    <h3 class="font-extrabold text-zinc-200 flex items-center gap-2 mb-3 tracking-wide"><span class="w-3 h-3 rounded-full bg-red-900 shadow-[0_0_8px_rgba(153,27,27,0.8)]"></span> Shopping List</h3>
-                    <div id="list-needed" class="space-y-3"></div>
+                <div id="category-list" class="hidden space-y-2">
+                    <!-- populated by js -->
                 </div>
-                <div class="pt-4 border-t border-zinc-800 mt-6">
-                    <h3 class="font-extrabold text-zinc-200 flex items-center gap-2 mb-3 tracking-wide"><span class="w-3 h-3 rounded-full bg-zinc-600"></span> Inventory</h3>
-                    <div id="list-stocked" class="space-y-3"></div>
+                <div id="category-add-form" class="hidden mt-3 flex gap-2">
+                    <input type="text" id="new-cat-name" placeholder="New category..." class="flex-1 bg-zinc-950 border border-zinc-700 p-2 rounded-lg text-sm text-zinc-100 outline-none focus:border-red-900">
+                    <button onclick="addCategory()" class="bg-zinc-800 text-zinc-200 px-3 py-2 rounded-lg text-sm font-bold hover:bg-zinc-700">Add</button>
                 </div>
             </div>
 
-            <div id="view-todos" class="tab-content hidden space-y-6">
-                <h2 class="text-xl font-extrabold text-zinc-100">Tasks & Projects</h2>
-                <form id="todo-form" class="flex gap-2">
-                    <input type="text" id="todo-input" required placeholder="Add a new task..." class="flex-1 p-4 rounded-2xl bg-zinc-900 border border-zinc-800 outline-none focus:border-red-900 font-medium shadow-sm text-zinc-200 placeholder:text-zinc-600">
-                    <button type="submit" class="bg-red-950 border border-red-900 text-red-500 px-6 rounded-2xl shadow-md hover:bg-red-900 hover:text-red-100 font-bold text-xl transition-colors">➕</button>
-                </form>
-                <div>
-                    <h3 class="font-bold text-zinc-500 text-sm mb-3 uppercase tracking-wider">Active Tasks</h3>
-                    <div id="todo-list" class="space-y-3"></div>
-                </div>
-                <div class="pt-6 border-t border-zinc-800 mt-6">
-                    <h3 class="font-bold text-zinc-500 text-sm mb-3 uppercase tracking-wider flex justify-between items-center">
-                        Archived Tasks
-                        <button type="button" onclick="toggleArchive()" id="archive-toggle" class="text-xs text-zinc-400 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 px-3 py-1.5 rounded-lg transition-colors">Show Archive</button>
-                    </h3>
-                    <div id="todo-archive" class="space-y-3 hidden"></div>
-                </div>
-            </div>
-
-            <div id="view-meals" class="tab-content hidden space-y-6">
-                <div class="flex justify-between items-center">
-                    <h2 class="text-xl font-extrabold text-zinc-100">Food Schedule</h2>
-                    <button onclick="toggleMealForm()" class="bg-zinc-900 border border-zinc-700 text-zinc-300 px-4 py-2.5 rounded-xl text-sm font-bold shadow-md hover:bg-zinc-800 transition-colors flex items-center gap-2">
-                        <span id="m-form-icon">➕</span> <span id="m-form-text">Plan Meal</span>
-                    </button>
-                </div>
-
-                <form id="meal-form" class="hidden bg-zinc-900 p-5 rounded-3xl shadow-xl border border-zinc-800 fade-in">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-bold text-zinc-200">Schedule a Meal</h3>
-                        <button type="button" onclick="toggleMealForm()" class="text-zinc-500 hover:text-zinc-300">❌</button>
-                    </div>
-                    <div class="space-y-4">
-                        <div class="flex bg-black rounded-xl p-1 border border-zinc-800">
-                            <label class="flex-1 text-center py-2.5 rounded-lg cursor-pointer transition-colors has-[:checked]:bg-zinc-800 has-[:checked]:text-white text-zinc-500 font-bold text-sm">
-                                <input type="radio" name="meal-type" value="prep" checked class="hidden"> Meal Prep (Lunch)
-                            </label>
-                            <label class="flex-1 text-center py-2.5 rounded-lg cursor-pointer transition-colors has-[:checked]:bg-zinc-800 has-[:checked]:text-white text-zinc-500 font-bold text-sm">
-                                <input type="radio" name="meal-type" value="dinner" class="hidden"> Weekly Dinner
-                            </label>
-                        </div>
-
-                        <div>
-                            <label class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Meal Name *</label>
-                            <input type="text" id="m-name" required class="w-full p-3 bg-black border border-zinc-800 rounded-xl outline-none font-medium text-zinc-200" placeholder="e.g. Chicken Quinoa Bowls">
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Start Date *</label>
-                                <input type="date" id="m-date" required class="w-full p-3 bg-black border border-zinc-800 rounded-xl outline-none font-medium text-zinc-200 color-scheme-dark">
-                            </div>
-                            <div>
-                                <label class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Repeats (Weeks)</label>
-                                <input type="number" id="m-repeat" min="0" max="99" placeholder="e.g. 2" class="w-full p-3 bg-black border border-zinc-800 rounded-xl outline-none font-medium text-zinc-200">
-                            </div>
-                        </div>
-                        <div class="flex gap-3 pt-2">
-                            <button type="button" onclick="toggleMealForm()" class="flex-1 bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold hover:bg-zinc-700 transition-colors border border-zinc-700">Cancel</button>
-                            <button type="submit" class="flex-1 bg-red-950 border border-red-900 text-red-100 py-3.5 rounded-xl font-bold hover:bg-red-900 transition-colors">Save</button>
-                        </div>
-                    </div>
-                </form>
-
-                <div class="space-y-8">
+            <div id="grocery-form-container" class="hidden bg-zinc-900 p-5 rounded-3xl border border-zinc-800 shadow-xl">
+                <h3 id="gf-title" class="font-extrabold text-zinc-100 mb-4 tracking-tight">New Item</h3>
+                <div class="space-y-4">
+                    <input type="hidden" id="gf-id">
                     <div>
-                        <h3 class="text-lg font-bold text-zinc-300 border-b border-zinc-800 pb-2 mb-4">Meal Prep (Lunches)</h3>
-                        <div id="meals-list-prep" class="space-y-6"></div>
+                        <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Item Name</label>
+                        <input id="gf-name" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 outline-none focus:border-red-900 transition-colors" placeholder="e.g. Apples">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Category</label>
+                            <select id="gf-category" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 outline-none focus:border-red-900">
+                                <!-- populated by JS -->
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Preferred Store</label>
+                            <input id="gf-store" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 outline-none focus:border-red-900" placeholder="e.g. Aldi">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Current Stock</label>
+                            <input type="number" id="gf-stock" min="0" value="0" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 outline-none text-center">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Need to Buy</label>
+                            <input type="number" id="gf-need" min="0" value="0" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 outline-none text-center">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Pack Size</label>
+                            <input id="gf-pack" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 outline-none" placeholder="e.g. bag, 8-pack">
+                        </div>
                     </div>
                     <div>
-                        <h3 class="text-lg font-bold text-zinc-300 border-b border-zinc-800 pb-2 mb-4">Weekly Dinners</h3>
-                        <div id="meals-list-dinner" class="space-y-6"></div>
+                        <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Notes</label>
+                        <input id="gf-notes" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 outline-none focus:border-red-900" placeholder="Specific brand or flavor...">
+                    </div>
+                    <div class="flex gap-3 pt-2">
+                        <button onclick="toggleGroceryForm()" class="flex-1 bg-zinc-800 text-zinc-300 py-3 rounded-xl font-bold hover:bg-zinc-700 transition-colors">Cancel</button>
+                        <button onclick="saveGrocery()" class="flex-1 bg-red-950 text-red-500 border border-red-900 py-3 rounded-xl font-bold hover:bg-red-900 hover:text-red-100 transition-colors shadow-lg">Save Item</button>
                     </div>
                 </div>
             </div>
 
-            <div id="view-chores" class="tab-content hidden space-y-6">
-                <div class="flex justify-between items-center">
-                    <h2 class="text-xl font-extrabold text-zinc-100 flex items-center gap-2"><span class="text-purple-600">🐈‍⬛</span> Cat Care</h2>
-                    <button onclick="toggleChoreSettings()" class="text-zinc-400 hover:text-zinc-200 bg-zinc-900 border border-zinc-800 px-3 py-2 rounded-lg transition-colors text-sm font-bold flex items-center gap-2">⚙️ Settings</button>
-                </div>
-                
-                <div id="chore-settings" class="hidden bg-zinc-900 p-5 rounded-2xl shadow-xl border border-zinc-800 border-t-4 border-t-purple-900 fade-in">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-bold text-zinc-200 text-sm tracking-wide uppercase">Schedule Frequencies (Weeks)</h3>
-                        <button type="button" onclick="toggleChoreSettings()" class="text-zinc-500 hover:text-zinc-300">❌</button>
-                    </div>
-                    <div class="space-y-3">
-                        <div class="flex justify-between items-center gap-4 bg-black p-3 rounded-xl border border-zinc-800">
-                            <label class="text-sm font-bold text-zinc-400 flex-1">Fully change Litter every:</label>
-                            <input type="number" id="set-change-weeks" min="1" class="w-16 p-2 bg-zinc-900 border border-zinc-700 rounded-lg text-center font-bold text-zinc-200">
-                        </div>
-                        <div class="flex justify-between items-center gap-4 bg-black p-3 rounded-xl border border-zinc-800">
-                            <label class="text-sm font-bold text-zinc-400 flex-1">Buy new Litter every:</label>
-                            <input type="number" id="set-buy-weeks" min="1" class="w-16 p-2 bg-zinc-900 border border-zinc-700 rounded-lg text-center font-bold text-zinc-200">
-                        </div>
-                        <div class="flex justify-between items-center gap-4 bg-black p-3 rounded-xl border border-zinc-800">
-                            <label class="text-sm font-bold text-zinc-400 flex-1">Clip Claws every:</label>
-                            <input type="number" id="set-claws-weeks" min="1" class="w-16 p-2 bg-zinc-900 border border-zinc-700 rounded-lg text-center font-bold text-zinc-200">
-                        </div>
-                        <div class="flex justify-between items-center gap-4 bg-black p-3 rounded-xl border border-zinc-800">
-                            <label class="text-sm font-bold text-zinc-400 flex-1">Brush every:</label>
-                            <input type="number" id="set-brush-weeks" min="1" class="w-16 p-2 bg-zinc-900 border border-zinc-700 rounded-lg text-center font-bold text-zinc-200">
-                        </div>
-                         <div class="flex justify-between items-center gap-4 bg-black p-3 rounded-xl border border-zinc-800">
-                            <label class="text-sm font-bold text-zinc-400 flex-1">Buy Food every:</label>
-                            <input type="number" id="set-food-weeks" min="1" class="w-16 p-2 bg-zinc-900 border border-zinc-700 rounded-lg text-center font-bold text-zinc-200">
-                        </div>
-                        <button onclick="saveChoreSettings()" class="w-full bg-purple-900 text-white py-3 rounded-xl font-bold mt-2 hover:bg-purple-800 transition-colors shadow-lg">Save All Schedules</button>
-                    </div>
-                </div>
+            <div id="shopping-list-container" class="space-y-3">
+                <h3 class="font-extrabold text-zinc-100 tracking-tight flex items-center gap-2 mb-4 border-b border-zinc-800 pb-2">
+                    <span class="w-2 h-2 rounded-full bg-red-500"></span> Shopping List
+                </h3>
+                <div id="sl-items" class="space-y-3"></div>
+            </div>
 
-                <form id="food-log-form" onsubmit="logFood(event)" class="hidden bg-zinc-900 p-5 rounded-2xl shadow-xl border border-zinc-800 border-t-4 border-t-orange-600 fade-in">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-bold text-zinc-200 text-sm tracking-wide uppercase flex items-center gap-2">🐟 Log Bought Food</h3>
-                        <button type="button" onclick="toggleFoodForm()" class="text-zinc-500 hover:text-zinc-300">❌</button>
+            <div class="pt-6">
+                <h3 class="font-extrabold text-zinc-400 tracking-tight flex items-center gap-2 mb-4 border-b border-zinc-800 pb-2">
+                    <span class="w-2 h-2 rounded-full bg-zinc-600"></span> Full Inventory
+                </h3>
+                <div id="inv-items" class="space-y-4"></div>
+            </div>
+        </div>
+
+        <div id="view-tasks" class="hidden fade-in space-y-6">
+             <h2 class="text-xl font-extrabold text-zinc-100 tracking-tight">Command Tasks</h2>
+             <div class="flex gap-2">
+                <input id="new-task-input" class="flex-1 bg-zinc-900 border border-zinc-800 p-4 rounded-2xl text-zinc-100 outline-none focus:border-red-900 placeholder:text-zinc-600 transition-colors shadow-inner" placeholder="Quick add task...">
+                <button onclick="addTask()" class="bg-red-950 text-red-500 border border-red-900 px-6 rounded-2xl font-bold hover:bg-red-900 hover:text-red-100 transition-colors shadow-lg">Add</button>
+             </div>
+             <div id="active-tasks" class="space-y-3"></div>
+             <div class="pt-6 border-t border-zinc-900">
+                 <button onclick="toggleArchive()" class="text-xs font-bold text-zinc-500 hover:text-zinc-300 transition-colors flex items-center gap-2 uppercase tracking-wider">
+                     <span>Archive / Completed</span> <span id="archive-chevron">▼</span>
+                 </button>
+                 <div id="archived-tasks" class="hidden space-y-2 mt-4 opacity-70"></div>
+             </div>
+        </div>
+
+        <div id="view-meals" class="hidden fade-in space-y-6">
+             <div class="flex justify-between items-center">
+                <h2 class="text-xl font-extrabold text-zinc-100 tracking-tight">Meal Prep</h2>
+                <button onclick="toggleMealForm('prep')" class="bg-red-950 text-red-500 border border-red-900 px-4 py-2 rounded-xl text-sm font-bold hover:bg-red-900 hover:text-red-100 transition-colors">+ Plan Prep</button>
+             </div>
+             
+             <div id="meal-form-prep" class="hidden bg-zinc-900 p-5 rounded-3xl border border-zinc-800 shadow-xl mb-6">
+                 <div class="space-y-4">
+                     <div>
+                         <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Prep Name</label>
+                         <input id="mf-prep-name" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 outline-none">
+                     </div>
+                     <div class="grid grid-cols-2 gap-4">
+                         <div>
+                             <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Start Date</label>
+                             <input type="date" id="mf-prep-date" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-400 outline-none">
+                         </div>
+                         <div>
+                             <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Repeats (Weeks)</label>
+                             <input type="number" id="mf-prep-repeat" min="0" value="0" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 outline-none text-center">
+                         </div>
+                     </div>
+                     <div class="flex gap-3 pt-2">
+                        <button onclick="toggleMealForm('prep')" class="flex-1 bg-zinc-800 text-zinc-300 py-3 rounded-xl font-bold hover:bg-zinc-700 transition-colors">Cancel</button>
+                        <button onclick="saveMeal('prep')" class="flex-1 bg-red-950 text-red-500 border border-red-900 py-3 rounded-xl font-bold hover:bg-red-900 hover:text-red-100 transition-colors">Save Prep</button>
                     </div>
-                    <div class="space-y-4">
+                 </div>
+             </div>
+
+             <div class="space-y-8">
+                 <div>
+                     <h3 class="font-black text-red-500 uppercase tracking-widest text-xs mb-3">Current Week</h3>
+                     <div id="meals-current" class="space-y-4"></div>
+                 </div>
+                 <div>
+                     <h3 class="font-black text-zinc-400 uppercase tracking-widest text-xs mb-3">Next Week</h3>
+                     <div id="meals-next" class="space-y-4"></div>
+                 </div>
+                 <div>
+                     <h3 class="font-black text-zinc-600 uppercase tracking-widest text-xs mb-3">Future</h3>
+                     <div id="meals-future" class="space-y-4"></div>
+                 </div>
+             </div>
+        </div>
+
+        <div id="view-dinners" class="hidden fade-in space-y-6">
+             <div class="flex justify-between items-center">
+                <h2 class="text-xl font-extrabold text-zinc-100 tracking-tight">Weekly Dinners</h2>
+                <button onclick="toggleMealForm('dinner')" class="bg-red-950 text-red-500 border border-red-900 px-4 py-2 rounded-xl text-sm font-bold hover:bg-red-900 hover:text-red-100 transition-colors">+ Plan Dinner</button>
+             </div>
+
+             <div id="meal-form-dinner" class="hidden bg-zinc-900 p-5 rounded-3xl border border-zinc-800 shadow-xl mb-6">
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Dinner Name</label>
+                        <input id="mf-dinner-name" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 outline-none">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Brand</label>
-                            <input type="text" id="food-brand" required class="w-full p-3 bg-black border border-zinc-800 rounded-xl outline-none font-medium text-zinc-200" placeholder="e.g. Purina Pro Plan">
+                            <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Date</label>
+                            <input type="date" id="mf-dinner-date" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-400 outline-none">
                         </div>
                         <div>
-                            <label class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Flavor / Type</label>
-                            <input type="text" id="food-flavor" required class="w-full p-3 bg-black border border-zinc-800 rounded-xl outline-none font-medium text-zinc-200" placeholder="e.g. Salmon & Rice">
+                            <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Repeats (Weeks)</label>
+                            <input type="number" id="mf-dinner-repeat" min="0" value="0" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 outline-none text-center">
                         </div>
-                        <button type="submit" class="w-full bg-orange-800 text-white py-3 rounded-xl font-bold hover:bg-orange-700 transition-colors shadow-lg">Save Food Log</button>
                     </div>
-                </form>
-
-                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3" id="cat-task-grid"></div>
-
-                <div class="bg-zinc-900 p-5 rounded-3xl shadow-xl border border-zinc-800 mt-6">
-                    <h3 class="font-extrabold text-lg text-zinc-100 mb-4 flex items-center gap-2"><span class="text-orange-500">🐟</span> Food Archive</h3>
-                    <div id="food-archive-list" class="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar"></div>
+                    <div class="flex gap-3 pt-2">
+                       <button onclick="toggleMealForm('dinner')" class="flex-1 bg-zinc-800 text-zinc-300 py-3 rounded-xl font-bold hover:bg-zinc-700 transition-colors">Cancel</button>
+                       <button onclick="saveMeal('dinner')" class="flex-1 bg-red-950 text-red-500 border border-red-900 py-3 rounded-xl font-bold hover:bg-red-900 hover:text-red-100 transition-colors">Save Dinner</button>
+                   </div>
                 </div>
             </div>
 
-            <div id="view-health" class="tab-content hidden space-y-6">
-                
-                <div class="bg-zinc-900 p-5 rounded-3xl border border-zinc-800 shadow-xl">
-                    <div class="flex items-center justify-between mb-2">
-                        <label class="text-xs font-bold text-zinc-500 uppercase tracking-wider">Active Health Profile</label>
-                        <div class="flex gap-2">
-                            <button id="hp-edit-btn" onclick="editHealthProfile()" class="hidden text-[10px] font-bold bg-zinc-800 border border-zinc-700 text-zinc-300 px-3 py-1.5 rounded-lg hover:bg-zinc-700 transition-colors">✏️ Edit</button>
-                            <button onclick="toggleHealthProfileForm()" class="text-[10px] font-bold bg-black border border-zinc-700 text-zinc-300 px-3 py-1.5 rounded-lg hover:bg-zinc-800 transition-colors">➕ New Profile</button>
-                        </div>
+            <div id="dinners-list" class="space-y-4"></div>
+        </div>
+
+        <div id="view-chores" class="hidden fade-in space-y-6">
+            <div class="flex justify-between items-center border-b border-zinc-900 pb-4">
+                <h2 class="text-xl font-extrabold text-zinc-100 tracking-tight flex items-center gap-2">
+                    <span class="text-2xl">🐈‍⬛</span> Cat Care
+                </h2>
+                <button onclick="toggleChoreSettings()" class="text-zinc-500 hover:text-zinc-300 bg-zinc-900 p-2 rounded-lg border border-zinc-800">⚙️ Settings</button>
+            </div>
+
+            <div id="chore-settings" class="hidden bg-zinc-900 p-5 rounded-2xl border border-zinc-800 shadow-xl mb-4 text-sm">
+                <h3 class="font-bold text-zinc-300 mb-3 border-b border-zinc-800 pb-2">Frequency Settings (Weeks)</h3>
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Change Litter</label>
+                        <input type="number" id="set-litter-change" class="w-full bg-zinc-950 border border-zinc-800 p-2 rounded-lg text-zinc-100 text-center">
                     </div>
-                    <div class="relative bg-black rounded-xl border border-zinc-700 flex items-center p-1">
-                        <div class="w-10 h-10 rounded-lg bg-cyan-950 flex items-center justify-center text-cyan-500 font-bold text-lg mr-2 shrink-0">👤</div>
-                        <select id="health-profile-select" onchange="switchHealthProfile()" class="w-full bg-transparent text-zinc-100 font-extrabold text-lg outline-none appearance-none cursor-pointer py-2 pl-2">
+                    <div>
+                        <label class="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Buy Litter</label>
+                        <input type="number" id="set-litter-buy" class="w-full bg-zinc-950 border border-zinc-800 p-2 rounded-lg text-zinc-100 text-center">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Clip Claws</label>
+                        <input type="number" id="set-claws" class="w-full bg-zinc-950 border border-zinc-800 p-2 rounded-lg text-zinc-100 text-center">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Brush</label>
+                        <input type="number" id="set-brush" class="w-full bg-zinc-950 border border-zinc-800 p-2 rounded-lg text-zinc-100 text-center">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Buy Food</label>
+                        <input type="number" id="set-food" class="w-full bg-zinc-950 border border-zinc-800 p-2 rounded-lg text-zinc-100 text-center">
+                    </div>
+                </div>
+                <button onclick="saveChoreSettings()" class="w-full bg-zinc-800 text-zinc-200 py-2 rounded-lg font-bold hover:bg-zinc-700">Save Frequencies</button>
+            </div>
+
+            <!-- Chore Cards -->
+            <div class="grid grid-cols-2 gap-4">
+                <!-- Litter Change -->
+                <button onclick="updateChore('catLitter', 'changed')" class="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl flex flex-col items-center justify-center gap-2 hover:border-red-900 hover:bg-zinc-800 transition-all group">
+                    <span class="font-extrabold text-zinc-300 group-hover:text-red-400">Fully Changed Litter</span>
+                    <span class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest bg-zinc-950 px-2 py-1 rounded-md">Next: <span id="due-litter-change">--</span></span>
+                </button>
+                <!-- Litter Buy -->
+                <button onclick="updateChore('catLitter', 'bought')" class="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl flex flex-col items-center justify-center gap-2 hover:border-red-900 hover:bg-zinc-800 transition-all group">
+                    <span class="font-extrabold text-zinc-300 group-hover:text-red-400">Bought New Litter</span>
+                    <span class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest bg-zinc-950 px-2 py-1 rounded-md">Next: <span id="due-litter-buy">--</span></span>
+                </button>
+                <!-- Claws -->
+                <button onclick="updateChore('catClaws', 'last')" class="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl flex flex-col items-center justify-center gap-2 hover:border-red-900 hover:bg-zinc-800 transition-all group">
+                    <span class="font-extrabold text-zinc-300 group-hover:text-red-400">Clipped Claws</span>
+                    <span class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest bg-zinc-950 px-2 py-1 rounded-md">Next: <span id="due-claws">--</span></span>
+                </button>
+                <!-- Brush -->
+                <button onclick="updateChore('catBrush', 'last')" class="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl flex flex-col items-center justify-center gap-2 hover:border-red-900 hover:bg-zinc-800 transition-all group">
+                    <span class="font-extrabold text-zinc-300 group-hover:text-red-400">Brushed Coat</span>
+                    <span class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest bg-zinc-950 px-2 py-1 rounded-md">Next: <span id="due-brush">--</span></span>
+                </button>
+            </div>
+
+            <!-- Food Archive -->
+            <div class="mt-8 border-t border-zinc-900 pt-6">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <h3 class="font-extrabold text-zinc-300">Food Archive</h3>
+                        <span class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest block mt-1">Next Due: <span id="due-food" class="text-red-400">--</span></span>
+                    </div>
+                    <button onclick="toggleFoodForm()" class="bg-zinc-800 text-zinc-300 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-zinc-700 transition-colors">+ Log Food</button>
+                </div>
+
+                <div id="food-form" class="hidden bg-zinc-900 p-4 rounded-2xl border border-zinc-800 mb-4">
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <input id="food-brand" placeholder="Brand (e.g. Purina)" class="bg-zinc-950 border border-zinc-800 p-2 rounded-lg text-sm text-zinc-100 outline-none">
+                        <input id="food-flavor" placeholder="Flavor (e.g. Salmon)" class="bg-zinc-950 border border-zinc-800 p-2 rounded-lg text-sm text-zinc-100 outline-none">
+                    </div>
+                    <button onclick="saveFoodLog()" class="w-full bg-red-950 text-red-500 py-2 rounded-lg font-bold border border-red-900 hover:bg-red-900 hover:text-red-100 transition-colors">Save Log</button>
+                </div>
+
+                <div id="food-archive-list" class="space-y-2"></div>
+            </div>
+        </div>
+
+        <div id="view-health" class="hidden fade-in space-y-6">
+            <!-- Profile Selector -->
+            <div class="bg-zinc-900 p-4 rounded-3xl border border-zinc-800 flex items-center justify-between gap-4">
+                <div class="flex-1 flex flex-col">
+                    <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1 pl-1">Active Profile</label>
+                    <div class="flex items-center gap-2">
+                        <select id="health-profile-select" onchange="switchProfile()" class="flex-1 bg-zinc-950 border border-zinc-800 text-zinc-100 p-3 rounded-xl outline-none font-bold appearance-none">
                             <option value="" class="bg-zinc-900 text-zinc-100">Select a Profile...</option>
                         </select>
-                        <div class="absolute right-4 text-zinc-500 pointer-events-none">▼</div>
+                        <button onclick="toggleHealthProfileForm(true)" class="text-zinc-500 hover:text-zinc-300 bg-zinc-950 border border-zinc-800 p-3 rounded-xl transition-colors" title="Edit Profile">✏️</button>
+                    </div>
+                </div>
+                <button onclick="toggleHealthProfileForm()" class="bg-zinc-800 text-zinc-300 border border-zinc-700 px-4 py-3 rounded-xl text-xs font-bold hover:bg-zinc-700 transition-colors whitespace-nowrap">+ New</button>
+            </div>
+
+            <!-- Profile Form -->
+            <div id="health-profile-form" class="hidden bg-zinc-900 p-5 rounded-3xl border border-zinc-800 shadow-xl">
+                <h3 class="font-extrabold text-zinc-100 mb-4 border-b border-zinc-800 pb-2">Profile Setup</h3>
+                <input type="hidden" id="hp-id">
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Name</label>
+                        <input id="hp-name" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 outline-none">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Age</label>
+                            <input type="number" id="hp-age" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 outline-none">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Gender</label>
+                            <select id="hp-gender" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 outline-none">
+                                <option class="bg-zinc-900 text-zinc-100">Male</option>
+                                <option class="bg-zinc-900 text-zinc-100">Female</option>
+                                <option class="bg-zinc-900 text-zinc-100">Other</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Height (in)</label>
+                            <input type="number" id="hp-height" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 outline-none">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Weight (lbs)</label>
+                            <input type="number" id="hp-weight" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 outline-none">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Activity Level</label>
+                            <select id="hp-activity" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 outline-none">
+                                <option value="0" class="bg-zinc-900 text-zinc-100">Sedentary</option>
+                                <option value="1" class="bg-zinc-900 text-zinc-100">Lightly Active</option>
+                                <option value="2" class="bg-zinc-900 text-zinc-100">Moderately Active</option>
+                                <option value="3" class="bg-zinc-900 text-zinc-100">Very Active</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Climate</label>
+                            <select id="hp-climate" class="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 outline-none">
+                                <option value="normal" class="bg-zinc-900 text-zinc-100">Normal</option>
+                                <option value="hot" class="bg-zinc-900 text-zinc-100">Hot / Dry</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="flex gap-3 pt-2">
+                        <button onclick="toggleHealthProfileForm()" class="flex-1 bg-zinc-800 text-zinc-300 py-3 rounded-xl font-bold hover:bg-zinc-700 transition-colors">Cancel</button>
+                        <button id="hp-delete-btn" onclick="promptDelete('profile')" class="hidden flex-none bg-zinc-950 border border-zinc-800 text-zinc-500 px-4 py-3 rounded-xl hover:text-red-500 hover:border-red-900 transition-colors">🗑️</button>
+                        <button onclick="saveHealthProfile()" class="flex-1 bg-red-950 text-red-500 border border-red-900 py-3 rounded-xl font-bold hover:bg-red-900 hover:text-red-100 transition-colors">Save Profile</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Health Dashboard -->
+            <div id="health-dashboard" class="hidden space-y-6">
+                <!-- Water Tracker -->
+                <div class="bg-zinc-900 p-5 rounded-3xl border border-zinc-800 relative overflow-hidden">
+                    <div class="absolute -right-6 -top-6 text-6xl opacity-10">💧</div>
+                    <div class="flex justify-between items-end mb-4">
+                        <div>
+                            <h3 class="font-extrabold text-zinc-100 text-lg">Hydration</h3>
+                            <p class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Goal: <span id="water-goal-display" class="text-blue-400">0</span> oz</p>
+                        </div>
+                        <div class="text-right">
+                            <span id="water-current-display" class="text-3xl font-black text-blue-500">0</span><span class="text-zinc-500 text-sm font-bold ml-1">oz</span>
+                        </div>
+                    </div>
+                    <!-- Progress Bar -->
+                    <div class="h-3 bg-zinc-950 rounded-full w-full mb-4 overflow-hidden border border-zinc-800">
+                        <div id="water-progress-bar" class="h-full bg-blue-600 rounded-full transition-all duration-500 w-0 shadow-[0_0_10px_rgba(37,99,235,0.5)]"></div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="logWater(8)" class="flex-1 bg-zinc-950 border border-zinc-800 text-blue-400 py-3 rounded-xl font-bold hover:border-blue-900 hover:bg-blue-950/30 transition-colors text-sm">+8 oz</button>
+                        <button onclick="logWater(16)" class="flex-1 bg-zinc-950 border border-zinc-800 text-blue-400 py-3 rounded-xl font-bold hover:border-blue-900 hover:bg-blue-950/30 transition-colors text-sm">+16 oz</button>
+                        <button onclick="logWater(24)" class="flex-1 bg-zinc-950 border border-zinc-800 text-blue-400 py-3 rounded-xl font-bold hover:border-blue-900 hover:bg-blue-950/30 transition-colors text-sm">+24 oz</button>
                     </div>
                 </div>
 
-                <form id="health-profile-form" class="hidden bg-zinc-900 p-5 rounded-3xl shadow-xl border border-zinc-800 fade-in">
+                <!-- Workout Tracker -->
+                <div>
                     <div class="flex justify-between items-center mb-4">
-                        <h3 id="hp-form-title" class="font-bold text-zinc-200">Setup Health Profile</h3>
-                        <button type="button" onclick="toggleHealthProfileForm()" class="text-zinc-500 hover:text-zinc-300">❌</button>
-                    </div>
-                    <div class="space-y-4">
-                        <div><label class="text-xs font-bold text-zinc-500 block mb-1">Name</label><input type="text" id="hp-name" required class="w-full p-3 bg-black border border-zinc-800 rounded-xl text-zinc-200 outline-none focus:border-cyan-700"></div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div><label class="text-xs font-bold text-zinc-500 block mb-1">Weight (lbs)</label><input type="number" id="hp-weight" required class="w-full p-3 bg-black border border-zinc-800 rounded-xl text-zinc-200 outline-none focus:border-cyan-700"></div>
-                            <div><label class="text-xs font-bold text-zinc-500 block mb-1">Height (in)</label><input type="number" id="hp-height" class="w-full p-3 bg-black border border-zinc-800 rounded-xl text-zinc-200 outline-none focus:border-cyan-700"></div>
-                            <div><label class="text-xs font-bold text-zinc-500 block mb-1">Age</label><input type="number" id="hp-age" class="w-full p-3 bg-black border border-zinc-800 rounded-xl text-zinc-200 outline-none focus:border-cyan-700"></div>
-                            <div>
-                                <label class="text-xs font-bold text-zinc-500 block mb-1">Gender</label>
-                                <select id="hp-gender" class="w-full p-3 bg-black border border-zinc-800 rounded-xl text-zinc-200 outline-none focus:border-cyan-700"><option>Male</option><option>Female</option><option>Other</option></select>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="text-xs font-bold text-zinc-500 block mb-1">Activity Level</label>
-                                <select id="hp-activity" class="w-full p-3 bg-black border border-zinc-800 rounded-xl text-zinc-200 text-sm outline-none focus:border-cyan-700">
-                                    <option value="sedentary">Sedentary (Little/No Ex)</option>
-                                    <option value="light">Light (1-3 days/wk)</option>
-                                    <option value="moderate">Moderate (3-5 days/wk)</option>
-                                    <option value="active">Active (6-7 days/wk)</option>
-                                    <option value="very">Very Active (Physical Job)</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="text-xs font-bold text-zinc-500 block mb-1">Climate</label>
-                                <select id="hp-climate" class="w-full p-3 bg-black border border-zinc-800 rounded-xl text-zinc-200 text-sm outline-none focus:border-cyan-700">
-                                    <option value="temperate">Temperate / Normal</option>
-                                    <option value="hot">Hot / Dry</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="flex gap-3 pt-2">
-                             <button type="button" onclick="toggleHealthProfileForm()" class="flex-1 bg-zinc-800 text-zinc-300 py-3 rounded-xl font-bold hover:bg-zinc-700 transition-colors">Cancel</button>
-                             <button type="button" id="hp-delete-btn" onclick="deleteHealthProfile()" class="hidden flex-none bg-red-950 text-red-500 border border-red-900 px-4 py-3 rounded-xl font-bold hover:bg-red-900 hover:text-red-100 transition-colors">🗑️</button>
-                             <button type="submit" class="flex-1 bg-cyan-900 text-white py-3 rounded-xl font-bold hover:bg-cyan-800 transition-colors shadow-lg">Save Profile</button>
-                        </div>
-                    </div>
-                </form>
-
-                <div id="health-dashboard" class="hidden space-y-6">
-                    
-                    <div class="bg-zinc-900 p-5 rounded-3xl shadow-xl border border-zinc-800 relative overflow-hidden">
-                        <div class="absolute top-0 right-0 p-4 opacity-5 text-6xl">💧</div>
-                        <div class="flex justify-between items-end mb-4 relative z-10">
-                            <div>
-                                <h3 class="font-extrabold text-lg text-zinc-100 flex items-center gap-2">Hydration</h3>
-                                <p class="text-xs text-zinc-500 font-medium mt-1">Goal: <span id="water-goal-display" class="text-cyan-400 font-bold"></span> oz / day</p>
-                            </div>
-                            <div class="text-right">
-                                <span id="water-today-display" class="text-3xl font-extrabold text-cyan-400">0</span>
-                                <span class="text-zinc-500 text-xs font-bold uppercase tracking-wider ml-1">oz</span>
-                            </div>
-                        </div>
-
-                        <div class="w-full bg-black rounded-full h-4 mb-5 border border-zinc-800 overflow-hidden relative shadow-inner">
-                            <div id="water-progress-bar" class="bg-cyan-600 h-full rounded-full transition-all duration-500 w-0 shadow-[0_0_10px_rgba(8,145,178,0.8)]"></div>
-                        </div>
-
-                        <div class="grid grid-cols-4 gap-2 relative z-10">
-                            <button onclick="logWater(8)" class="bg-black border border-zinc-700 text-zinc-300 py-2.5 rounded-xl text-sm font-bold hover:border-cyan-700 hover:text-cyan-400 hover:bg-cyan-950/30 transition-all">+8</button>
-                            <button onclick="logWater(12)" class="bg-black border border-zinc-700 text-zinc-300 py-2.5 rounded-xl text-sm font-bold hover:border-cyan-700 hover:text-cyan-400 hover:bg-cyan-950/30 transition-all">+12</button>
-                            <button onclick="logWater(16)" class="bg-black border border-zinc-700 text-zinc-300 py-2.5 rounded-xl text-sm font-bold hover:border-cyan-700 hover:text-cyan-400 hover:bg-cyan-950/30 transition-all">+16</button>
-                            <button onclick="promptCustomWater()" class="bg-zinc-800 border border-zinc-700 text-zinc-300 py-2.5 rounded-xl text-xs font-bold hover:border-cyan-700 hover:text-cyan-400 hover:bg-cyan-950/30 transition-all">Custom</button>
-                        </div>
+                        <h3 class="font-extrabold text-zinc-100 tracking-tight flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-red-600"></span> Workouts
+                        </h3>
+                        <button onclick="toggleWorkoutForm()" class="text-xs font-bold bg-zinc-800 text-zinc-300 px-3 py-1.5 rounded-lg hover:bg-zinc-700 transition-colors">+ Log Session</button>
                     </div>
 
-                    <div class="bg-zinc-900 p-5 rounded-3xl shadow-xl border border-zinc-800 relative overflow-hidden">
-                        <div class="absolute top-0 right-0 p-4 opacity-5 text-6xl">💪</div>
-                        <div class="flex justify-between items-center mb-4 border-b border-zinc-800 pb-3 relative z-10">
-                            <h3 class="font-extrabold text-lg text-zinc-100 flex items-center gap-2">Workouts</h3>
-                            <button onclick="toggleWorkoutForm()" class="bg-emerald-950 border border-emerald-900 text-emerald-400 px-4 py-2 rounded-xl text-xs font-bold hover:bg-emerald-900 hover:text-white transition-colors shadow-md">Log Workout</button>
-                        </div>
-
-                        <form id="workout-form" class="hidden space-y-3 mb-5 p-4 bg-black rounded-2xl border border-zinc-800 fade-in relative z-10">
-                            <div class="flex justify-between items-center mb-2">
-                                <h4 class="font-bold text-zinc-300 text-sm">New Entry</h4>
-                                <button type="button" onclick="toggleWorkoutForm()" class="text-zinc-500 hover:text-zinc-300 text-xs">Cancel</button>
-                            </div>
-                            <div>
-                                <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Activity</label>
-                                <input type="text" id="wo-type" required placeholder="e.g. Swimming, Weights, Run" class="w-full p-2.5 bg-zinc-900 border border-zinc-700 rounded-lg text-sm text-zinc-200 outline-none focus:border-emerald-700">
-                            </div>
+                    <div id="workout-form" class="hidden bg-zinc-900 p-4 rounded-2xl border border-zinc-800 mb-4 shadow-xl">
+                        <div class="space-y-3">
+                            <input id="wo-type" placeholder="Workout Type (e.g. Kettlebells, Swimming)" class="w-full bg-zinc-950 border border-zinc-800 p-3 rounded-xl text-zinc-100 outline-none text-sm">
                             
-                            <div class="grid grid-cols-3 gap-2">
-                                <div>
-                                    <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Mins</label>
-                                    <input type="number" id="wo-duration" required placeholder="Time" class="w-full p-2.5 bg-zinc-900 border border-zinc-700 rounded-lg text-sm text-zinc-200 outline-none focus:border-emerald-700">
+                            <div class="grid grid-cols-4 gap-2">
+                                <div class="col-span-1">
+                                    <label class="block text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-1 pl-1">Sets</label>
+                                    <input type="number" id="wo-sets" class="w-full bg-zinc-950 border border-zinc-800 p-2.5 rounded-xl text-zinc-100 outline-none text-center">
                                 </div>
-                                <div>
-                                    <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Sets</label>
-                                    <input type="number" id="wo-sets" placeholder="Opt." class="w-full p-2.5 bg-zinc-900 border border-zinc-700 rounded-lg text-sm text-zinc-200 outline-none focus:border-emerald-700">
+                                <div class="col-span-1">
+                                    <label class="block text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-1 pl-1">Reps</label>
+                                    <input type="number" id="wo-reps" class="w-full bg-zinc-950 border border-zinc-800 p-2.5 rounded-xl text-zinc-100 outline-none text-center">
                                 </div>
-                                <div>
-                                    <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Reps</label>
-                                    <input type="number" id="wo-reps" placeholder="Opt." class="w-full p-2.5 bg-zinc-900 border border-zinc-700 rounded-lg text-sm text-zinc-200 outline-none focus:border-emerald-700">
+                                <div class="col-span-1">
+                                    <label class="block text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-1 pl-1">Amt/Dist</label>
+                                    <input type="number" id="wo-amount" class="w-full bg-zinc-950 border border-zinc-800 p-2.5 rounded-xl text-zinc-100 outline-none text-center">
+                                </div>
+                                <div class="col-span-1">
+                                    <label class="block text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-1 pl-1">Unit</label>
+                                    <select id="wo-unit" class="w-full bg-zinc-950 border border-zinc-800 p-2.5 rounded-xl text-zinc-100 outline-none text-center appearance-none">
+                                        <option class="bg-zinc-900">Lbs</option>
+                                        <option class="bg-zinc-900">Mins</option>
+                                        <option class="bg-zinc-900">Mi</option>
+                                        <option class="bg-zinc-900">Laps</option>
+                                        <option class="bg-zinc-900">N/A</option>
+                                    </select>
                                 </div>
                             </div>
 
-                            <div class="grid grid-cols-2 gap-2">
-                                <div>
-                                    <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Distance/Amount</label>
-                                    <input type="number" id="wo-dist" step="0.1" placeholder="e.g. 1.5, 30" class="w-full p-2.5 bg-zinc-900 border border-zinc-700 rounded-lg text-sm text-zinc-200 outline-none focus:border-emerald-700">
-                                </div>
-                                <div>
-                                    <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Unit</label>
-                                    <input type="text" id="wo-unit" placeholder="Laps, Mi, Lbs" class="w-full p-2.5 bg-zinc-900 border border-zinc-700 rounded-lg text-sm text-zinc-200 outline-none focus:border-emerald-700">
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Intensity</label>
-                                <select id="wo-intensity" class="w-full p-2.5 bg-zinc-900 border border-zinc-700 rounded-lg text-sm text-zinc-200 outline-none focus:border-emerald-700">
-                                    <option value="Low">Low</option>
-                                    <option value="Medium" selected>Medium</option>
-                                    <option value="High">High</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Notes</label>
-                                <input type="text" id="wo-notes" placeholder="Optional notes..." class="w-full p-2.5 bg-zinc-900 border border-zinc-700 rounded-lg text-sm text-zinc-200 outline-none focus:border-emerald-700">
-                            </div>
-                            <button type="submit" class="w-full bg-emerald-800 text-white py-3 rounded-xl font-bold mt-2 hover:bg-emerald-700 transition-colors shadow-lg">Save Log</button>
-                        </form>
-
-                        <div id="workout-list" class="space-y-3 relative z-10"></div>
-                    </div>
-
-                    <div class="bg-zinc-900 p-5 rounded-3xl shadow-xl border border-zinc-800">
-                        <h3 class="font-bold text-sm text-zinc-400 uppercase tracking-wider mb-5 text-center">Last 7 Days Output</h3>
-                        <div class="flex items-end justify-between h-36 gap-1.5 border-b border-zinc-800 pb-2 relative" id="health-graph-bars"></div>
-                        <div class="flex justify-between mt-2 text-[9px] font-bold text-zinc-500 uppercase" id="health-graph-labels"></div>
-                        <div class="flex justify-center gap-5 mt-5 text-xs font-bold text-zinc-400">
-                            <span class="flex items-center gap-1.5"><div class="w-3 h-3 bg-cyan-600 rounded-sm shadow-sm"></div> Water</span>
-                            <span class="flex items-center gap-1.5"><div class="w-3 h-3 bg-emerald-600 rounded-sm shadow-sm"></div> Workout</span>
+                            <input id="wo-notes" placeholder="Notes (optional)..." class="w-full bg-zinc-950 border border-zinc-800 p-3 rounded-xl text-zinc-100 outline-none text-sm">
+                            <button onclick="saveWorkout()" class="w-full bg-red-950 text-red-500 border border-red-900 py-3 rounded-xl font-bold hover:bg-red-900 hover:text-red-100 transition-colors shadow-lg mt-1">Save Workout</button>
                         </div>
                     </div>
 
+                    <div id="workout-list" class="space-y-3"></div>
                 </div>
             </div>
-        </main>
-    </div>
+        </div>
+    </main>
 
-    <div id="data-modal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex flex-col items-center justify-center p-4 fade-in">
-        <div class="bg-zinc-900 p-6 rounded-3xl border border-zinc-800 shadow-[0_0_40px_rgba(0,0,0,1)] w-full max-w-sm">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="font-extrabold text-xl text-zinc-100 flex items-center gap-2">💾 Data Manager</h3>
-                <button type="button" onclick="toggleDataModal()" class="text-zinc-500 hover:text-zinc-300">❌</button>
-            </div>
-            <p class="text-sm text-zinc-400 mb-6 font-medium">Backup your entire Command Center state or restore from a previous backup file.</p>
-            
-            <div class="space-y-4">
-                <button onclick="exportData()" class="w-full bg-zinc-800 text-zinc-200 border border-zinc-700 py-4 rounded-2xl font-bold hover:bg-zinc-700 hover:text-white transition-colors flex items-center justify-center gap-2">
-                    ⬇️ Download Backup
-                </button>
-                
-                <div class="relative">
-                    <input type="file" id="import-file" accept=".json" onchange="importData(event)" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
-                    <button type="button" class="w-full bg-red-950 text-red-200 border border-red-900 py-4 rounded-2xl font-bold hover:bg-red-900 hover:text-white transition-colors flex items-center justify-center gap-2 shadow-lg">
-                        ⬆️ Restore Backup
-                    </button>
-                </div>
-                
-                <p class="text-[10px] text-zinc-500 text-center uppercase tracking-wider mt-2 border-t border-zinc-800 pt-3">
-                    Warning: Restoring will overwrite all current data.
-                </p>
+    <!-- Safe Delete Confirmation Modal -->
+    <div id="confirm-modal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] flex-col items-center justify-center p-4 fade-in">
+        <div class="bg-zinc-900 p-6 rounded-3xl border border-red-900 shadow-[0_0_40px_rgba(153,27,27,0.3)] w-full max-w-sm text-center">
+            <div class="text-5xl mb-4">⚠️</div>
+            <h3 class="font-extrabold text-xl text-zinc-100 mb-2">Are you sure?</h3>
+            <p class="text-sm text-zinc-400 mb-6 font-medium">You are about to delete <br><span id="delete-item-name" class="text-red-400 font-bold">this item</span>.<br>This action cannot be undone.</p>
+            <div class="flex gap-3">
+                <button onclick="cancelDelete()" class="flex-1 bg-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold hover:bg-zinc-700 transition-colors border border-zinc-700">Cancel</button>
+                <button onclick="confirmDelete()" class="flex-1 bg-red-950 text-red-500 border border-red-900 py-3.5 rounded-xl font-bold hover:bg-red-900 hover:text-red-100 transition-colors shadow-lg shadow-red-900/20">Delete</button>
             </div>
         </div>
     </div>
 
-    <script>
-        // 🚨 FIREBASE CONFIGURATION (LIVE SYNC) 🚨
-        // =========================================
+    <!-- Data Management (Backup) Modal -->
+    <div id="data-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[90] flex items-center justify-center p-4 fade-in">
+        <div class="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl shadow-2xl max-w-sm w-full">
+            <h2 class="text-xl font-extrabold text-zinc-100 mb-4 tracking-tight flex items-center gap-2">💾 Data Backup</h2>
+            <p class="text-sm text-zinc-400 mb-6 font-medium">Export your data to a file to keep it safe, or import a previous backup to restore your command center.</p>
+            <div class="space-y-3">
+                <button onclick="exportData()" class="w-full bg-zinc-800 text-zinc-200 py-3.5 rounded-xl font-bold hover:bg-zinc-700 transition-colors border border-zinc-700 flex justify-center items-center gap-2">
+                    ⬇️ Download Backup
+                </button>
+                <div class="relative">
+                    <input type="file" id="import-file" accept=".json" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="importData(event)">
+                    <button class="w-full bg-red-950 text-red-500 border border-red-900 py-3.5 rounded-xl font-bold hover:bg-red-900 hover:text-red-100 transition-colors shadow-lg flex justify-center items-center gap-2">
+                        ⬆️ Restore Backup
+                    </button>
+                </div>
+                <button onclick="toggleDataModal()" class="w-full mt-4 text-xs font-bold text-zinc-500 uppercase tracking-wider py-2">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Timer Setup Modal -->
+    <div id="timer-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[90] flex items-center justify-center p-4 fade-in">
+        <div class="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl shadow-2xl max-w-xs w-full text-center">
+            <h3 class="font-extrabold text-lg text-zinc-100 mb-4">Cooking Timer</h3>
+            <div class="flex items-center justify-center gap-2 mb-6">
+                <input type="number" id="timer-mins" min="0" value="15" class="w-20 bg-zinc-950 border border-zinc-800 p-3 rounded-xl text-zinc-100 outline-none text-center text-2xl font-black">
+                <span class="text-zinc-500 font-bold">MINS</span>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="toggleTimerModal()" class="flex-1 bg-zinc-800 text-zinc-300 py-3 rounded-xl font-bold">Cancel</button>
+                <button onclick="startTimer()" class="flex-1 bg-red-950 text-red-500 border border-red-900 py-3 rounded-xl font-bold">Start</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyCFm_LFV2pur5mKf4RfxFdyvRumo-xMuL0",
             authDomain: "home-command-center-4a250.firebaseapp.com",
             projectId: "home-command-center-4a250",
             storageBucket: "home-command-center-4a250.firebasestorage.app",
+            messagingSenderId: "650433556310",
+            appId: "1:650433556310:web:20e65ae7e39f98a7ec30f7"
         };
 
-        let db;
-        let isLive = false;
-        const STORAGE_KEY = 'home-cmd-goth-v5';
-        
-        // Passcode: 6969
-        const TARGET_HEX = "36393639"; 
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const docRef = doc(db, "command_center", "home_data");
 
-        // Timezone Enforcement
-        const TZ_OPTS = { timeZone: 'America/Chicago' };
-
-        let state = {
-            groceries: [],
-            todos: [],
+        // Central State
+        window.state = {
+            groceries: [], 
+            categories: ["Fruits", "Meats", "Breads & Grains", "Vegetables", "Dips, Sauces, & Spreads", "Beverages", "Snacks", "Packaged Meals"],
+            todos: [], 
             meals: [], 
-            chores: { 
-                changeWeeks: 2, buyWeeks: 4, clawsWeeks: 3, brushWeeks: 1, foodWeeks: 4,
-                litterChanged: null, litterBought: null,
-                clawsClipped: null, brushed: null,
-                foodBought: null, foodArchive: []
+            dinners: [], 
+            chores: {
+                catLitter: { changed: null, bought: null },
+                catClaws: { last: null },
+                catBrush: { last: null },
+                catFood: [],
+                settings: { litterChangeWeeks: 4, litterBuyWeeks: 8, clawsWeeks: 3, brushWeeks: 1, foodBuyWeeks: 4 }
             },
-            health: { profiles: [], waterLogs: [], workoutLogs: [] }
+            health: {
+                profiles: [], 
+                activeProfileId: null,
+                waterLogs: [], 
+                workouts: []
+            }
         };
 
-        let editingGroceryId = null;
-        let activeProfileId = null;
-        let editingProfileId = null;
+        let isLocked = true;
+        let isSaving = false;
+        
+        // Timer Globals
+        let timerInterval;
+        let targetTime;
+        let timerAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+        timerAudio.loop = true;
 
-        // --- Confetti Engine ---
-        function triggerConfetti() {
-            if (typeof confetti !== 'undefined') {
-                confetti({
-                    particleCount: 80,
-                    spread: 60,
-                    origin: { y: 0.7 },
-                    colors: ['#7f1d1d', '#0891b2', '#059669', '#d4d4d8'],
-                    disableForReducedMotion: true
-                });
+        // --- Safe Deletion Globals ---
+        let deleteConfig = { type: null, id: null };
+
+        // Realtime Sync Listener
+        onSnapshot(docRef, (snapshot) => {
+            if (snapshot.exists() && !isSaving) {
+                const serverData = snapshot.data();
+                mergeState(serverData);
+                if (!isLocked) renderAll();
             }
+        });
+
+        window.saveData = async function() {
+            isSaving = true;
+            try {
+                await setDoc(docRef, state);
+            } catch (e) {
+                console.error("Save error: ", e);
+            }
+            isSaving = false;
+        };
+
+        function mergeState(incoming) {
+            if(incoming.groceries) state.groceries = incoming.groceries;
+            if(incoming.categories) state.categories = incoming.categories;
+            if(incoming.todos) state.todos = incoming.todos;
+            if(incoming.meals) state.meals = incoming.meals;
+            if(incoming.dinners) state.dinners = incoming.dinners;
+            if(incoming.chores) state.chores = { ...state.chores, ...incoming.chores };
+            if(incoming.health) state.health = { ...state.health, ...incoming.health };
         }
 
-        // --- Data Loading & Syncing ---
-        function initDataSync() {
-            if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY") {
-                try {
-                    firebase.initializeApp(firebaseConfig);
-                    db = firebase.firestore();
-                    isLive = true;
-                    
-                    const badge = document.getElementById('sync-status');
-                    badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_5px_#22c55e]"></span> Live Sync On`;
-                    badge.className = "flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-green-400 bg-green-950/30 px-2 py-1.5 rounded-md border border-green-900";
+        // --- Authentication (6969) ---
+        window.stringToHex = function(str) {
+            let hex = '';
+            for(let i=0; i<str.length; i++) {
+                hex += '' + str.charCodeAt(i).toString(16);
+            }
+            return hex;
+        };
 
-                    db.collection('command_center').doc('home_data').onSnapshot((doc) => {
-                        if (doc.exists) {
-                            mergeState(doc.data());
-                            renderAll();
-                        }
-                    });
-                } catch (e) {
-                    console.error("Firebase init failed:", e);
-                    fallbackToLocal();
+        window.checkPin = function() {
+            const input = document.getElementById('pin-input').value;
+            if (stringToHex(input) === "36393639") { // 6969
+                isLocked = false;
+                document.getElementById('auth-screen').classList.add('hidden');
+                renderAll();
+            } else {
+                document.getElementById('auth-error').classList.remove('hidden');
+                document.getElementById('pin-input').value = '';
+            }
+        };
+
+        window.lockApp = function() {
+            isLocked = true;
+            document.getElementById('auth-screen').classList.remove('hidden');
+            document.getElementById('pin-input').value = '';
+            document.getElementById('auth-error').classList.add('hidden');
+        };
+
+        // --- Core Rendering ---
+        window.renderAll = function() {
+            renderGroceries();
+            renderTasks();
+            renderMeals();
+            renderDinners();
+            renderChores();
+            renderHealth();
+        };
+
+        window.switchTab = function(tabId) {
+            ['groceries', 'tasks', 'meals', 'dinners', 'chores', 'health'].forEach(t => {
+                document.getElementById(`view-${t}`).classList.add('hidden');
+                document.getElementById(`tab-${t}`).classList.remove('border-red-900', 'text-red-500');
+                document.getElementById(`tab-${t}`).classList.add('border-transparent', 'text-zinc-600');
+            });
+            document.getElementById(`view-${tabId}`).classList.remove('hidden');
+            document.getElementById(`tab-${tabId}`).classList.add('border-red-900', 'text-red-500');
+            document.getElementById(`tab-${tabId}`).classList.remove('border-transparent', 'text-zinc-600');
+        };
+
+        // --- Confetti helper ---
+        window.fireConfetti = function() {
+            confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ['#7f1d1d', '#991b1b', '#000000', '#52525b'] });
+        };
+
+        // --- Central Time Helpers ---
+        function getCTDateStr() {
+            return new Date().toLocaleDateString("en-US", {timeZone: "America/Chicago"});
+        }
+        function getCTISO() {
+            return new Date().toISOString(); // Underlying data can be ISO, display should be CT
+        }
+        function formatCTDate(iso) {
+            if(!iso) return 'Never';
+            return new Date(iso).toLocaleDateString("en-US", {timeZone: "America/Chicago", month: 'short', day: 'numeric'});
+        }
+
+        // --- Groceries Logic ---
+        window.toggleGroceryForm = function(editId = null) {
+            const form = document.getElementById('grocery-form-container');
+            if (form.classList.contains('hidden')) {
+                form.classList.remove('hidden');
+                populateCategorySelect();
+                if (editId) {
+                    const g = state.groceries.find(x => x.id === editId);
+                    document.getElementById('gf-title').innerText = "Edit Item";
+                    document.getElementById('gf-id').value = g.id;
+                    document.getElementById('gf-name').value = g.name;
+                    document.getElementById('gf-category').value = g.category || state.categories[0];
+                    document.getElementById('gf-store').value = g.store || '';
+                    document.getElementById('gf-stock').value = g.stock || 0;
+                    document.getElementById('gf-need').value = g.need || 0;
+                    document.getElementById('gf-pack').value = g.packSize || '';
+                    document.getElementById('gf-notes').value = g.notes || '';
+                } else {
+                    document.getElementById('gf-title').innerText = "New Item";
+                    document.getElementById('gf-id').value = '';
+                    document.getElementById('gf-name').value = '';
+                    document.getElementById('gf-store').value = '';
+                    document.getElementById('gf-stock').value = 0;
+                    document.getElementById('gf-need').value = 0;
+                    document.getElementById('gf-pack').value = '';
+                    document.getElementById('gf-notes').value = '';
                 }
             } else {
-                fallbackToLocal();
+                form.classList.add('hidden');
             }
-        }
+        };
 
-        function fallbackToLocal() {
-            const saved = localStorage.getItem(STORAGE_KEY);
-            if (saved) {
-                try { mergeState(JSON.parse(saved)); } 
-                catch (e) { console.error("Corrupted local save file", e); }
-            }
-            renderAll();
-        }
+        window.populateCategorySelect = function() {
+            const sel = document.getElementById('gf-category');
+            sel.innerHTML = state.categories.map(c => `<option class="bg-zinc-900 text-zinc-100" value="${c}">${c}</option>`).join('');
+        };
 
-        function mergeState(parsed) {
-            state = { 
-                ...state, 
-                ...parsed, 
-                chores: { ...state.chores, ...(parsed.chores || {}) },
-                health: { ...state.health, ...(parsed.health || {}) }
+        window.saveGrocery = function() {
+            const id = document.getElementById('gf-id').value;
+            const newItem = {
+                id: id ? id : Date.now().toString(),
+                name: document.getElementById('gf-name').value.trim(),
+                category: document.getElementById('gf-category').value,
+                store: document.getElementById('gf-store').value.trim(),
+                stock: parseInt(document.getElementById('gf-stock').value) || 0,
+                need: parseInt(document.getElementById('gf-need').value) || 0,
+                packSize: document.getElementById('gf-pack').value.trim(),
+                notes: document.getElementById('gf-notes').value.trim(),
+                lastBought: id ? state.groceries.find(g=>g.id===id).lastBought : null
             };
-            if(!state.health.profiles) state.health.profiles = [];
-            if(!state.health.waterLogs) state.health.waterLogs = [];
-            if(!state.health.workoutLogs) state.health.workoutLogs = [];
-            if(!state.chores.foodArchive) state.chores.foodArchive = [];
-            if(!state.chores.clawsWeeks) state.chores.clawsWeeks = 3;
-            if(!state.chores.brushWeeks) state.chores.brushWeeks = 1;
-            if(!state.chores.foodWeeks) state.chores.foodWeeks = 4;
-        }
+            if (!newItem.name) return;
 
-        function saveData() {
-            if (isLive) {
-                db.collection('command_center').doc('home_data').set(state)
-                  .catch(err => showToast("Error saving to cloud", true));
+            if (id) {
+                const idx = state.groceries.findIndex(g => g.id === id);
+                if(idx > -1) state.groceries[idx] = newItem;
             } else {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+                state.groceries.push(newItem);
             }
+            saveData();
+            toggleGroceryForm();
+            renderGroceries();
+            renderMeals(); renderDinners();
+        };
+
+        window.toggleCart = function(id, forceValue = null) {
+            const idx = state.groceries.findIndex(g => g.id === id);
+            if (idx > -1) {
+                if(forceValue !== null) {
+                    state.groceries[idx].need = forceValue;
+                } else {
+                    state.groceries[idx].need = state.groceries[idx].need > 0 ? 0 : 1;
+                }
+                saveData(); renderGroceries(); renderMeals(); renderDinners();
+            }
+        };
+
+        window.markPickedUp = function(id) {
+            const idx = state.groceries.findIndex(g => g.id === id);
+            if (idx > -1) {
+                const addAmt = state.groceries[idx].need || 1;
+                state.groceries[idx].stock += addAmt;
+                state.groceries[idx].need = 0;
+                state.groceries[idx].lastBought = getCTISO();
+                saveData(); renderGroceries(); renderMeals(); renderDinners();
+                fireConfetti();
+            }
+        };
+
+        window.deleteGrocery = function(id) {
+            state.groceries = state.groceries.filter(g => g.id !== id);
+            saveData(); renderGroceries(); renderMeals(); renderDinners();
+        };
+
+        window.toggleCategoryEdit = function() {
+            const list = document.getElementById('category-list');
+            const form = document.getElementById('category-add-form');
+            if (list.classList.contains('hidden')) {
+                list.classList.remove('hidden');
+                form.classList.remove('hidden');
+                renderCategories();
+            } else {
+                list.classList.add('hidden');
+                form.classList.add('hidden');
+            }
+        };
+
+        window.renderCategories = function() {
+            const html = state.categories.map((c, i) => `
+                <div class="flex justify-between items-center bg-zinc-950 p-2 rounded-lg border border-zinc-800">
+                    <span class="text-sm font-bold text-zinc-300">${c}</span>
+                    <button onclick="removeCategory(${i})" class="text-zinc-600 hover:text-red-500 transition-colors">🗑️</button>
+                </div>
+            `).join('');
+            document.getElementById('category-list').innerHTML = html;
+        };
+
+        window.addCategory = function() {
+            const v = document.getElementById('new-cat-name').value.trim();
+            if (v && !state.categories.includes(v)) {
+                state.categories.push(v);
+                document.getElementById('new-cat-name').value = '';
+                saveData(); renderCategories(); populateCategorySelect();
+            }
+        };
+        window.removeCategory = function(index) {
+            state.categories.splice(index, 1);
+            saveData(); renderCategories(); populateCategorySelect();
+        };
+
+        window.renderGroceries = function() {
+            const needed = state.groceries.filter(g => g.need > 0).sort((a,b) => a.category.localeCompare(b.category));
+            const stocked = state.groceries.filter(g => g.need <= 0).sort((a,b) => a.category.localeCompare(b.category));
+
+            document.getElementById('sl-items').innerHTML = needed.length ? needed.map(g => `
+                <div class="bg-zinc-900 border border-red-900/30 p-4 rounded-2xl flex items-center gap-3 shadow-sm">
+                    <button onclick="markPickedUp('${g.id}')" class="w-10 h-10 flex-shrink-0 bg-red-950/30 text-red-500 border border-red-900/50 rounded-xl flex items-center justify-center hover:bg-red-900 hover:text-red-100 transition-colors">✓</button>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex justify-between">
+                            <h4 class="font-extrabold text-zinc-100 truncate">${g.name}</h4>
+                            <span class="text-[10px] font-bold bg-zinc-950 text-zinc-500 px-2 py-1 rounded-md ml-2">${g.category}</span>
+                        </div>
+                        <div class="text-[11px] font-bold text-red-400 mt-1">Need: ${g.need} ${g.packSize ? `(${g.packSize})` : ''} <span class="text-zinc-600 mx-1">•</span> <span class="text-zinc-400">Stock: ${g.stock}</span></div>
+                        ${g.notes || g.store ? `<div class="text-[10px] font-medium text-zinc-500 mt-1 truncate">${g.store ? `🛒 ${g.store} ` : ''}${g.notes}</div>` : ''}
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <button onclick="toggleGroceryForm('${g.id}')" class="p-1.5 text-zinc-500 hover:text-zinc-200">✏️</button>
+                        <button onclick="toggleCart('${g.id}', 0)" class="p-1.5 text-zinc-600 hover:text-red-500 text-xs font-bold">Remove</button>
+                    </div>
+                </div>
+            `).join('') : '<p class="text-xs text-zinc-600 font-bold italic py-2 text-center">List is empty.</p>';
+
+            document.getElementById('inv-items').innerHTML = stocked.length ? stocked.map(g => {
+                const isLow = g.stock <= 2;
+                return `
+                <div class="bg-zinc-900 border ${isLow ? 'border-orange-900/50' : 'border-zinc-800'} p-4 rounded-2xl flex items-center opacity-80 hover:opacity-100 transition-opacity">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2">
+                            <h4 class="font-bold text-zinc-300 truncate">${g.name}</h4>
+                            ${isLow ? '<span class="text-[9px] bg-orange-900/30 text-orange-500 px-1.5 py-0.5 rounded font-black uppercase">Low</span>' : ''}
+                        </div>
+                        <div class="text-[10px] font-bold text-zinc-500 mt-1 uppercase tracking-wider">
+                            Stock: <span class="${isLow ? 'text-orange-400' : 'text-zinc-300'}">${g.stock}</span> ${g.packSize ? `(${g.packSize})` : ''} • Last: ${formatCTDate(g.lastBought)}
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="toggleCart('${g.id}', 1)" class="text-xs font-bold bg-zinc-950 border border-zinc-700 text-zinc-400 px-3 py-2 rounded-xl hover:text-zinc-100 transition-colors whitespace-nowrap">+ Cart</button>
+                        <button onclick="toggleGroceryForm('${g.id}')" class="p-1.5 text-zinc-500 hover:text-zinc-200">✏️</button>
+                        <button onclick="promptDelete('grocery', '${g.id}')" class="p-1.5 text-zinc-600 hover:text-red-500">🗑️</button>
+                    </div>
+                </div>
+            `}).join('') : '';
+        };
+
+        // --- Safe Deletion Modal Logic ---
+        window.promptDelete = function(type, id = null) {
+            deleteConfig = { type, id };
+            let name = "this item";
+            if (type === 'grocery') {
+                const g = state.groceries.find(x => x.id === id);
+                if (g) name = `the grocery item: ${g.name}`;
+            } else if (type === 'todo') {
+                name = "this task";
+            } else if (type === 'meal') {
+                const m = state.meals.find(x => x.id === id);
+                if (m) name = `the scheduled meal prep: ${m.name}`;
+            } else if (type === 'dinner') {
+                const d = state.dinners.find(x => x.id === id);
+                if (d) name = `the dinner: ${d.name}`;
+            } else if (type === 'food') {
+                name = "this cat food log";
+            } else if (type === 'workout') {
+                name = "this workout log";
+            } else if (type === 'profile') {
+                const p = state.health.profiles.find(x => x.id === state.health.activeProfileId);
+                if (p) name = `the health profile: ${p.name}`;
+            }
+            
+            document.getElementById('delete-item-name').innerText = name;
+            const modal = document.getElementById('confirm-modal');
+            modal.classList.remove('hidden'); modal.classList.add('flex');
+        };
+
+        window.cancelDelete = function() {
+            deleteConfig = { type: null, id: null };
+            const modal = document.getElementById('confirm-modal');
+            modal.classList.add('hidden'); modal.classList.remove('flex');
+        };
+
+        window.confirmDelete = function() {
+            const { type, id } = deleteConfig;
+            if (type === 'grocery') deleteGrocery(id);
+            else if (type === 'todo') deleteTodo(id);
+            else if (type === 'meal') deleteMeal('prep', id);
+            else if (type === 'dinner') deleteMeal('dinner', id);
+            else if (type === 'food') deleteFoodRecord(id);
+            else if (type === 'workout') deleteWorkout(id);
+            else if (type === 'profile') deleteHealthProfile();
+            cancelDelete();
+        };
+
+        // --- Tasks Logic ---
+        window.addTask = function() {
+            const input = document.getElementById('new-task-input');
+            const text = input.value.trim();
+            if (!text) return;
+            state.todos.push({
+                id: Date.now().toString(),
+                text,
+                completed: false,
+                archived: false,
+                history: [`Added ${formatCTDate(getCTISO())}`]
+            });
+            input.value = '';
+            saveData(); renderTasks();
+        };
+
+        window.toggleTask = function(id) {
+            const t = state.todos.find(x => x.id === id);
+            if (t) {
+                t.completed = !t.completed;
+                t.history.push(`${t.completed ? 'Completed' : 'Unchecked'} ${formatCTDate(getCTISO())}`);
+                if (t.completed) fireConfetti();
+                saveData(); renderTasks();
+            }
+        };
+
+        window.archiveTask = function(id) {
+            const t = state.todos.find(x => x.id === id);
+            if(t) { t.archived = !t.archived; saveData(); renderTasks(); }
+        };
+
+        window.deleteTodo = function(id) {
+            state.todos = state.todos.filter(x => x.id !== id);
+            saveData(); renderTasks();
+        };
+
+        window.toggleArchive = function() {
+            const div = document.getElementById('archived-tasks');
+            const chev = document.getElementById('archive-chevron');
+            if (div.classList.contains('hidden')) {
+                div.classList.remove('hidden'); chev.innerText = '▲';
+            } else {
+                div.classList.add('hidden'); chev.innerText = '▼';
+            }
+        };
+
+        window.renderTasks = function() {
+            const active = state.todos.filter(t => !t.archived);
+            const archived = state.todos.filter(t => t.archived);
+
+            const genHtml = (list) => list.map(t => `
+                <div class="bg-zinc-900 border ${t.completed ? 'border-zinc-800' : 'border-zinc-700'} p-4 rounded-2xl">
+                    <div class="flex items-center gap-3">
+                        <button onclick="toggleTask('${t.id}')" class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${t.completed ? 'bg-red-900 border-red-900 text-white' : 'border-zinc-600'}">
+                            ${t.completed ? '✓' : ''}
+                        </button>
+                        <span class="flex-1 font-bold text-sm ${t.completed ? 'line-through text-zinc-600' : 'text-zinc-200'}">${t.text}</span>
+                        <button onclick="archiveTask('${t.id}')" class="text-[10px] uppercase font-black tracking-widest text-zinc-500 bg-zinc-950 px-2 py-1 rounded hover:text-zinc-300 transition-colors">${t.archived ? 'Restore' : 'Archive'}</button>
+                        <button onclick="promptDelete('todo', '${t.id}')" class="text-zinc-600 hover:text-red-500">🗑️</button>
+                    </div>
+                    <div class="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mt-2 pl-9">
+                        <span class="text-zinc-400">History:</span> ${t.history.slice(-2).join(' • ')}
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('active-tasks').innerHTML = genHtml(active) || '<p class="text-xs font-bold italic text-zinc-600 text-center py-4">No tasks pending.</p>';
+            document.getElementById('archived-tasks').innerHTML = genHtml(archived);
+        };
+
+        // --- Meals & Dinners Logic ---
+        window.toggleMealForm = function(type) {
+            const form = document.getElementById(`meal-form-${type}`);
+            form.classList.toggle('hidden');
+        };
+
+        window.saveMeal = function(type) {
+            const name = document.getElementById(`mf-${type}-name`).value.trim();
+            const date = document.getElementById(`mf-${type}-date`).value;
+            const repeat = parseInt(document.getElementById(`mf-${type}-repeat`).value) || 0;
+            if(!name || !date) return;
+            
+            const newMeal = { id: Date.now().toString(), name, date, repeatWeeks: repeat, ingredients: [] };
+            if(type === 'prep') state.meals.push(newMeal);
+            else state.dinners.push(newMeal);
+            
+            document.getElementById(`mf-${type}-name`).value = '';
+            document.getElementById(`mf-${type}-repeat`).value = 0;
+            saveData(); toggleMealForm(type);
+            if(type==='prep') renderMeals(); else renderDinners();
+        };
+
+        window.deleteMeal = function(type, id) {
+            if(type === 'prep') state.meals = state.meals.filter(x => x.id !== id);
+            else state.dinners = state.dinners.filter(x => x.id !== id);
+            saveData();
+            if(type==='prep') renderMeals(); else renderDinners();
+        };
+
+        window.addIngredientToMeal = function(type, mealId, selectEl) {
+            const gId = selectEl.value;
+            if(!gId) return;
+            const targetList = type === 'prep' ? state.meals : state.dinners;
+            const meal = targetList.find(m => m.id === mealId);
+            if(meal && !meal.ingredients.includes(gId)) {
+                meal.ingredients.push(gId);
+                saveData();
+                if(type==='prep') renderMeals(); else renderDinners();
+            }
+            selectEl.value = ''; 
+        };
+
+        window.removeIngredientFromMeal = function(type, mealId, gId) {
+            const targetList = type === 'prep' ? state.meals : state.dinners;
+            const meal = targetList.find(m => m.id === mealId);
+            if(meal) {
+                meal.ingredients = meal.ingredients.filter(id => id !== gId);
+                saveData();
+                if(type==='prep') renderMeals(); else renderDinners();
+            }
+        };
+
+        function getWeekType(dateStr) {
+            const mealDate = new Date(dateStr);
+            const today = new Date();
+            // Start of current week (Sunday)
+            const currentSun = new Date(today);
+            currentSun.setDate(today.getDate() - today.getDay());
+            currentSun.setHours(0,0,0,0);
+            
+            const nextSun = new Date(currentSun);
+            nextSun.setDate(currentSun.getDate() + 7);
+            
+            const futureSun = new Date(currentSun);
+            futureSun.setDate(currentSun.getDate() + 14);
+
+            if (mealDate >= futureSun) return 'future';
+            if (mealDate >= nextSun) return 'next';
+            return 'current';
         }
 
-        // --- Data Backup & Restore ---
-        function toggleDataModal() {
-            const m = document.getElementById('data-modal');
-            m.classList.contains('hidden') ? m.classList.remove('hidden') : m.classList.add('hidden');
+        window.renderMeals = function() {
+            renderMealSection('prep', state.meals);
+        };
+        window.renderDinners = function() {
+            renderMealSection('dinner', state.dinners);
+        };
+
+        function renderMealSection(type, list) {
+            const sorted = [...list].sort((a,b) => new Date(a.date) - new Date(b.date));
+            const grocOpts = state.groceries.map(g => `<option class="bg-zinc-900" value="${g.id}">${g.name}</option>`).join('');
+
+            const genHtml = (mealsList) => mealsList.map(m => {
+                let ingsHtml = '';
+                m.ingredients.forEach(gId => {
+                    const g = state.groceries.find(x => x.id === gId);
+                    if(g) {
+                        const inCart = g.need > 0;
+                        ingsHtml += `
+                        <div class="flex justify-between items-center bg-zinc-950 p-2 rounded-lg border border-zinc-800 mt-2">
+                            <span class="text-xs font-bold text-zinc-300 truncate w-1/2">${g.name}</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[9px] font-bold uppercase tracking-wider ${inCart ? 'text-red-400' : 'text-zinc-500'}">${inCart ? 'ON LIST' : `STOCK: ${g.stock}`}</span>
+                                <button onclick="toggleCart('${g.id}')" class="text-[9px] font-bold uppercase tracking-wider bg-zinc-800 text-zinc-300 px-2 py-1 rounded hover:bg-zinc-700 transition-colors whitespace-nowrap">${inCart ? 'Rem Cart' : 'Add Cart'}</button>
+                                <button onclick="removeIngredientFromMeal('${type}', '${m.id}', '${g.id}')" class="text-zinc-600 hover:text-red-500 ml-1">🗑️</button>
+                            </div>
+                        </div>`;
+                    }
+                });
+
+                return `
+                <div class="bg-zinc-900 p-5 rounded-3xl border border-zinc-800 shadow-lg">
+                    <div class="flex justify-between items-start mb-3 border-b border-zinc-800 pb-3">
+                        <div>
+                            <span class="text-[10px] font-black text-zinc-500 uppercase tracking-widest block mb-1">${formatCTDate(m.date)} ${m.repeatWeeks ? `(Repeats ${m.repeatWeeks}w)` : ''}</span>
+                            <h4 class="font-extrabold text-lg text-zinc-100">${m.name}</h4>
+                        </div>
+                        <button onclick="promptDelete('${type}', '${m.id}')" class="text-zinc-600 hover:text-red-500 bg-zinc-950 p-2 rounded-lg">🗑️</button>
+                    </div>
+                    <div>
+                        <div class="flex gap-2">
+                            <select onchange="addIngredientToMeal('${type}', '${m.id}', this)" class="flex-1 text-xs bg-zinc-950 border border-zinc-800 text-zinc-300 p-2 rounded-lg outline-none appearance-none">
+                                <option value="" class="bg-zinc-900">Add from inventory...</option>
+                                ${grocOpts}
+                            </select>
+                        </div>
+                        ${ingsHtml}
+                    </div>
+                </div>`;
+            }).join('');
+
+            if (type === 'prep') {
+                const cur = sorted.filter(m => getWeekType(m.date) === 'current');
+                const nxt = sorted.filter(m => getWeekType(m.date) === 'next');
+                const fut = sorted.filter(m => getWeekType(m.date) === 'future');
+                document.getElementById('meals-current').innerHTML = genHtml(cur) || '<p class="text-xs italic text-zinc-600">None</p>';
+                document.getElementById('meals-next').innerHTML = genHtml(nxt) || '<p class="text-xs italic text-zinc-600">None</p>';
+                document.getElementById('meals-future').innerHTML = genHtml(fut) || '<p class="text-xs italic text-zinc-600">None</p>';
+            } else {
+                document.getElementById('dinners-list').innerHTML = genHtml(sorted) || '<p class="text-xs italic text-zinc-600">None planned.</p>';
+            }
+        };
+
+        // --- Chores (Cat Care) Logic ---
+        window.toggleChoreSettings = function() {
+            const div = document.getElementById('chore-settings');
+            if(div.classList.contains('hidden')) {
+                document.getElementById('set-litter-change').value = state.chores.settings.litterChangeWeeks || 4;
+                document.getElementById('set-litter-buy').value = state.chores.settings.litterBuyWeeks || 8;
+                document.getElementById('set-claws').value = state.chores.settings.clawsWeeks || 3;
+                document.getElementById('set-brush').value = state.chores.settings.brushWeeks || 1;
+                document.getElementById('set-food').value = state.chores.settings.foodBuyWeeks || 4;
+                div.classList.remove('hidden');
+            } else div.classList.add('hidden');
+        };
+        
+        window.saveChoreSettings = function() {
+            state.chores.settings = {
+                litterChangeWeeks: parseInt(document.getElementById('set-litter-change').value) || 4,
+                litterBuyWeeks: parseInt(document.getElementById('set-litter-buy').value) || 8,
+                clawsWeeks: parseInt(document.getElementById('set-claws').value) || 3,
+                brushWeeks: parseInt(document.getElementById('set-brush').value) || 1,
+                foodBuyWeeks: parseInt(document.getElementById('set-food').value) || 4
+            };
+            saveData(); toggleChoreSettings(); renderChores();
+        };
+
+        window.updateChore = function(cat, type) {
+            state.chores[cat][type] = getCTISO();
+            fireConfetti();
+            saveData(); renderChores();
+        };
+
+        window.toggleFoodForm = function() {
+            document.getElementById('food-form').classList.toggle('hidden');
+        };
+
+        window.saveFoodLog = function() {
+            const brand = document.getElementById('food-brand').value.trim();
+            const flavor = document.getElementById('food-flavor').value.trim();
+            if(!brand || !flavor) return;
+            if(!state.chores.catFood) state.chores.catFood = [];
+            state.chores.catFood.push({ id: Date.now().toString(), date: getCTISO(), brand, flavor });
+            document.getElementById('food-brand').value = '';
+            document.getElementById('food-flavor').value = '';
+            toggleFoodForm(); fireConfetti(); saveData(); renderChores();
+        };
+
+        window.deleteFoodRecord = function(id) {
+            state.chores.catFood = state.chores.catFood.filter(x => x.id !== id);
+            saveData(); renderChores();
+        };
+
+        function addDays(iso, days) {
+            if(!iso) return '--';
+            let d = new Date(iso);
+            d.setDate(d.getDate() + days);
+            return formatCTDate(d.toISOString());
         }
 
-        function exportData() {
-            const dataStr = JSON.stringify(state, null, 2);
-            const blob = new Blob([dataStr], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `HomeBase_Backup_${new Date().toLocaleDateString('en-US', TZ_OPTS).replace(/\//g, '-')}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-            showToast("Backup Downloaded!");
+        window.renderChores = function() {
+            const s = state.chores.settings;
+            document.getElementById('due-litter-change').innerText = addDays(state.chores.catLitter.changed, (s.litterChangeWeeks||4)*7);
+            document.getElementById('due-litter-buy').innerText = addDays(state.chores.catLitter.bought, (s.litterBuyWeeks||8)*7);
+            document.getElementById('due-claws').innerText = addDays(state.chores.catClaws?.last, (s.clawsWeeks||3)*7);
+            document.getElementById('due-brush').innerText = addDays(state.chores.catBrush?.last, (s.brushWeeks||1)*7);
+            
+            const foods = state.chores.catFood || [];
+            const lastFood = foods.length ? foods[foods.length-1].date : null;
+            document.getElementById('due-food').innerText = addDays(lastFood, (s.foodBuyWeeks||4)*7);
+
+            document.getElementById('food-archive-list').innerHTML = foods.slice().reverse().map(f => `
+                <div class="bg-zinc-950 p-3 rounded-xl border border-zinc-800 flex justify-between items-center">
+                    <div>
+                        <div class="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">${formatCTDate(f.date)}</div>
+                        <div class="text-sm font-extrabold text-zinc-200">${f.brand} <span class="text-zinc-600 mx-1">•</span> <span class="text-zinc-400">${f.flavor}</span></div>
+                    </div>
+                    <button onclick="promptDelete('food', '${f.id}')" class="text-zinc-600 hover:text-red-500">🗑️</button>
+                </div>
+            `).join('');
+        };
+
+        // --- Health Tab Logic ---
+        window.switchProfile = function() {
+            const sel = document.getElementById('health-profile-select').value;
+            state.health.activeProfileId = sel || null;
+            document.getElementById('health-profile-form').classList.add('hidden');
+            saveData(); renderHealth();
+        };
+
+        window.toggleHealthProfileForm = function(editActive = false) {
+            const form = document.getElementById('health-profile-form');
+            if (form.classList.contains('hidden')) {
+                form.classList.remove('hidden');
+                if (editActive && state.health.activeProfileId) {
+                    const p = state.health.profiles.find(x => x.id === state.health.activeProfileId);
+                    document.getElementById('hp-id').value = p.id;
+                    document.getElementById('hp-name').value = p.name;
+                    document.getElementById('hp-age').value = p.age || '';
+                    document.getElementById('hp-gender').value = p.gender || 'Male';
+                    document.getElementById('hp-height').value = p.height || '';
+                    document.getElementById('hp-weight').value = p.weight || '';
+                    document.getElementById('hp-activity').value = p.activity || '0';
+                    document.getElementById('hp-climate').value = p.climate || 'normal';
+                    document.getElementById('hp-delete-btn').classList.remove('hidden');
+                } else {
+                    document.getElementById('hp-id').value = '';
+                    document.getElementById('hp-name').value = '';
+                    document.getElementById('hp-delete-btn').classList.add('hidden');
+                }
+            } else form.classList.add('hidden');
+        };
+
+        window.saveHealthProfile = function() {
+            const id = document.getElementById('hp-id').value;
+            const name = document.getElementById('hp-name').value.trim();
+            if(!name) return;
+
+            const weight = parseFloat(document.getElementById('hp-weight').value) || 150;
+            const activity = parseInt(document.getElementById('hp-activity').value) || 0;
+            const climate = document.getElementById('hp-climate').value;
+
+            // Medical Water Calc: (weight / 2) + (12oz per activity tier) + (16oz if hot)
+            let waterGoal = (weight * 0.5) + (activity * 12);
+            if(climate === 'hot') waterGoal += 16;
+
+            const profile = {
+                id: id || Date.now().toString(),
+                name,
+                age: document.getElementById('hp-age').value,
+                gender: document.getElementById('hp-gender').value,
+                height: document.getElementById('hp-height').value,
+                weight, activity, climate, waterGoal
+            };
+
+            if (id) {
+                const idx = state.health.profiles.findIndex(x => x.id === id);
+                state.health.profiles[idx] = profile;
+            } else {
+                state.health.profiles.push(profile);
+                state.health.activeProfileId = profile.id; // Auto select new
+            }
+            saveData(); toggleHealthProfileForm(); renderHealth();
+        };
+
+        window.deleteHealthProfile = function() {
+            const id = state.health.activeProfileId;
+            state.health.profiles = state.health.profiles.filter(x => x.id !== id);
+            state.health.activeProfileId = state.health.profiles.length ? state.health.profiles[0].id : null;
+            saveData(); toggleHealthProfileForm(); renderHealth();
+        };
+
+        window.logWater = function(amt) {
+            if(!state.health.activeProfileId) return;
+            state.health.waterLogs.push({ id: Date.now().toString(), profileId: state.health.activeProfileId, date: getCTISO(), amount: amt });
+            fireConfetti(); saveData(); renderHealth();
+        };
+
+        window.toggleWorkoutForm = function() {
+            document.getElementById('workout-form').classList.toggle('hidden');
+        };
+
+        window.saveWorkout = function() {
+            if(!state.health.activeProfileId) return;
+            const w = {
+                id: Date.now().toString(),
+                profileId: state.health.activeProfileId,
+                date: getCTISO(),
+                type: document.getElementById('wo-type').value.trim() || 'Workout',
+                sets: document.getElementById('wo-sets').value,
+                reps: document.getElementById('wo-reps').value,
+                amount: document.getElementById('wo-amount').value,
+                unit: document.getElementById('wo-unit').value,
+                notes: document.getElementById('wo-notes').value.trim()
+            };
+            state.health.workouts.push(w);
+            
+            document.getElementById('wo-type').value = '';
+            document.getElementById('wo-sets').value = '';
+            document.getElementById('wo-reps').value = '';
+            document.getElementById('wo-amount').value = '';
+            document.getElementById('wo-notes').value = '';
+            toggleWorkoutForm(); fireConfetti(); saveData(); renderHealth();
+        };
+
+        window.deleteWorkout = function(id) {
+            state.health.workouts = state.health.workouts.filter(x => x.id !== id);
+            saveData(); renderHealth();
+        };
+
+        window.renderHealth = function() {
+            const sel = document.getElementById('health-profile-select');
+            sel.innerHTML = `<option value="" class="bg-zinc-900 text-zinc-100">Select a Profile...</option>` + 
+                state.health.profiles.map(p => `<option value="${p.id}" class="bg-zinc-900 text-zinc-100">${p.name}</option>`).join('');
+            sel.value = state.health.activeProfileId || '';
+
+            const dash = document.getElementById('health-dashboard');
+            if (state.health.activeProfileId) {
+                dash.classList.remove('hidden');
+                const profile = state.health.profiles.find(x => x.id === state.health.activeProfileId);
+                
+                // Water Math (Today only)
+                const todayStr = getCTDateStr();
+                const todayLogs = state.health.waterLogs.filter(l => l.profileId === profile.id && formatCTDate(l.date) === formatCTDate(getCTISO()));
+                const currentOz = todayLogs.reduce((sum, l) => sum + l.amount, 0);
+                const goal = profile.waterGoal || 64;
+                
+                document.getElementById('water-goal-display').innerText = Math.round(goal);
+                document.getElementById('water-current-display').innerText = currentOz;
+                const pct = Math.min((currentOz / goal) * 100, 100);
+                document.getElementById('water-progress-bar').style.width = `${pct}%`;
+
+                // Workouts
+                const myWos = state.health.workouts.filter(w => w.profileId === profile.id).reverse();
+                document.getElementById('workout-list').innerHTML = myWos.length ? myWos.map(w => {
+                    const stats = [];
+                    if(w.sets && w.reps) stats.push(`${w.sets}x${w.reps}`);
+                    else if(w.sets) stats.push(`${w.sets} sets`);
+                    else if(w.reps) stats.push(`${w.reps} reps`);
+                    if(w.amount) stats.push(`${w.amount} ${w.unit!=='N/A'?w.unit:''}`);
+                    
+                    return `
+                    <div class="bg-zinc-950 p-4 rounded-xl border border-zinc-800 flex items-center justify-between">
+                        <div>
+                            <div class="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">${formatCTDate(w.date)}</div>
+                            <div class="text-sm font-extrabold text-zinc-200 mb-1">${w.type}</div>
+                            ${stats.length ? `<span class="bg-zinc-900 border border-zinc-700 text-zinc-300 text-[10px] font-black uppercase px-2 py-0.5 rounded">${stats.join(' • ')}</span>` : ''}
+                            ${w.notes ? `<div class="text-[10px] text-zinc-500 italic mt-2">"${w.notes}"</div>` : ''}
+                        </div>
+                        <button onclick="promptDelete('workout', '${w.id}')" class="text-zinc-600 hover:text-red-500 p-2">🗑️</button>
+                    </div>`;
+                }).join('') : '<p class="text-xs text-zinc-600 italic">No workouts logged.</p>';
+            } else {
+                dash.classList.add('hidden');
+            }
+        };
+
+        // --- Data Management (Backup/Restore) ---
+        window.toggleDataModal = function() {
+            document.getElementById('data-modal').classList.toggle('hidden');
+        };
+
+        window.exportData = function() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "command_center_backup.json");
+            document.body.appendChild(downloadAnchorNode); 
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
             toggleDataModal();
-        }
+        };
 
-        function importData(event) {
+        window.importData = function(event) {
             const file = event.target.files[0];
             if (!file) return;
             const reader = new FileReader();
@@ -670,895 +1348,60 @@
                     const imported = JSON.parse(e.target.result);
                     if (imported && typeof imported === 'object') {
                         mergeState(imported);
-                        saveData();
-                        renderAll();
-                        showToast("Data Restored Successfully!");
-                        toggleDataModal();
+                        saveData(); renderAll(); toggleDataModal();
                     }
                 } catch(err) {
-                    showToast("Error: Invalid backup file", true);
+                    console.error("Invalid backup file");
                 }
             };
             reader.readAsText(file);
-            event.target.value = ''; // Reset input
-        }
-
-        // --- STREAMING_CHUNK:Security & Setup ---
-        function stringToHex(str) {
-            return Array.from(str).map(c => c.charCodeAt(0).toString(16)).join('');
-        }
-
-        document.getElementById('auth-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const input = document.getElementById('pin-input').value;
-            if (stringToHex(input) === TARGET_HEX) {
-                sessionStorage.setItem('cmd_auth', 'true');
-                unlockApp();
-            } else {
-                document.getElementById('auth-error').classList.remove('hidden');
-                document.getElementById('pin-input').value = '';
-            }
-        });
-
-        function unlockApp() {
-            document.getElementById('auth-view').classList.add('hidden');
-            document.getElementById('app-view').classList.remove('hidden');
-            document.getElementById('pin-input').value = '';
-            document.getElementById('auth-error').classList.add('hidden');
-            initDataSync(); 
-        }
-
-        function lockApp() {
-            sessionStorage.removeItem('cmd_auth');
-            document.getElementById('app-view').classList.add('hidden');
-            document.getElementById('auth-view').classList.remove('hidden');
-        }
-
-        window.onload = () => {
-            if (sessionStorage.getItem('cmd_auth') === 'true') unlockApp();
-            else document.getElementById('auth-view').classList.remove('hidden');
+            event.target.value = '';
         };
 
-        // --- Utilities ---
-        function formatDate(iso) {
-            if (!iso) return 'Never';
-            return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', ...TZ_OPTS });
-        }
-        function formatDateTime(iso) {
-            if (!iso) return 'Never';
-            return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit', ...TZ_OPTS });
-        }
-        function addDays(iso, days) {
-            if (!iso) return 'ASAP';
-            let d = new Date(iso);
-            d.setDate(d.getDate() + days);
-            
-            const now = new Date();
-            const nowCT = new Date(now.toLocaleString('en-US', TZ_OPTS));
-            const dCT = new Date(d.toLocaleString('en-US', TZ_OPTS));
-            
-            const isLate = dCT < nowCT;
-            return `<span class="${isLate ? 'text-red-500 drop-shadow-[0_0_5px_rgba(239,68,68,0.5)]' : 'text-purple-400'}">${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...TZ_OPTS })}</span>`;
-        }
+        // --- Timer Logic ---
+        window.toggleTimerModal = function() {
+            document.getElementById('timer-modal').classList.toggle('hidden');
+        };
 
-        function showToast(msg, isError = false) {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            toast.className = `toast ${isError ? 'toast-alert' : ''}`;
-            toast.innerHTML = `<span class="text-xl">${isError ? '⚠️' : '✅'}</span> <span>${msg}</span>`;
-            container.appendChild(toast);
-            setTimeout(() => { toast.style.opacity = '0'; setTimeout(()=>toast.remove(), 300); }, 3000);
-        }
+        window.startTimer = function() {
+            const mins = parseInt(document.getElementById('timer-mins').value) || 15;
+            targetTime = Date.now() + (mins * 60000);
+            document.getElementById('active-timer').classList.remove('hidden');
+            document.getElementById('active-timer').classList.add('flex');
+            document.getElementById('timer-dismiss-btn').classList.add('hidden');
+            toggleTimerModal();
+            if(timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(updateTimer, 1000);
+            updateTimer();
+        };
 
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.tab-btn').forEach(el => {
-                el.classList.remove('border-red-900', 'text-red-600', 'bg-zinc-900/50');
-                el.classList.add('border-transparent', 'text-zinc-600');
-            });
-            document.getElementById(`view-${tabId}`).classList.remove('hidden');
-            const activeTab = document.getElementById(`tab-${tabId}`);
-            activeTab.classList.add('border-red-900', 'text-red-600', 'bg-zinc-900/50');
-            activeTab.classList.remove('border-transparent', 'text-zinc-600');
-            renderAll(); 
-        }
-
-        // --- STREAMING_CHUNK:Timer Logic ---
-        let timerInterval;
-        let timerSecondsLeft = 0;
-        
-        function startTimerBtn() {
-            const mins = parseFloat(document.getElementById('timer-input').value);
-            if (!mins || mins <= 0) return;
-            timerSecondsLeft = Math.floor(mins * 60);
-            document.getElementById('timer-input').value = '';
-            
-            document.getElementById('timer-controls').classList.add('hidden');
-            document.getElementById('timer-active-controls').classList.remove('hidden');
-            document.getElementById('timer-active-controls').classList.add('flex');
-            document.getElementById('timer-display').classList.add('text-red-400');
-            
-            clearInterval(timerInterval);
-            updateTimerDisplay();
-            timerInterval = setInterval(tickTimer, 1000);
-        }
-        
-        function tickTimer() {
-            if (timerSecondsLeft <= 0) {
+        window.updateTimer = function() {
+            const remaining = targetTime - Date.now();
+            if (remaining <= 0) {
                 clearInterval(timerInterval);
-                document.getElementById('timer-ui').classList.add('pulse-timer', 'bg-red-950/20');
-                
-                const sound = document.getElementById('timer-sound');
-                sound.play().catch(e=>{ console.log("Audio play blocked by browser", e); });
-                
-                document.getElementById('timer-active-controls').classList.add('hidden');
-                document.getElementById('timer-active-controls').classList.remove('flex');
-                document.getElementById('timer-dismiss-controls').classList.remove('hidden');
-                document.getElementById('timer-dismiss-controls').classList.add('flex');
-                
                 document.getElementById('timer-display').innerText = "00:00";
-                return;
-            }
-            timerSecondsLeft--;
-            updateTimerDisplay();
-        }
-
-        function stopTimer() {
-            clearInterval(timerInterval);
-            timerSecondsLeft = 0;
-            updateTimerDisplay();
-            resetTimerUI();
-        }
-
-        function dismissTimer() {
-            const sound = document.getElementById('timer-sound');
-            sound.pause();
-            sound.currentTime = 0;
-            timerSecondsLeft = 0;
-            updateTimerDisplay();
-            resetTimerUI();
-        }
-
-        function resetTimerUI() {
-            document.getElementById('timer-controls').classList.remove('hidden');
-            document.getElementById('timer-active-controls').classList.add('hidden');
-            document.getElementById('timer-active-controls').classList.remove('flex');
-            document.getElementById('timer-dismiss-controls').classList.add('hidden');
-            document.getElementById('timer-dismiss-controls').classList.remove('flex');
-            document.getElementById('timer-display').classList.remove('text-red-400');
-            document.getElementById('timer-ui').classList.remove('pulse-timer', 'bg-red-950/20');
-        }
-
-        function updateTimerDisplay() {
-            if (timerSecondsLeft <= 0) { document.getElementById('timer-display').innerText = "00:00"; return; }
-            const m = Math.floor(timerSecondsLeft / 60).toString().padStart(2, '0');
-            const s = (timerSecondsLeft % 60).toString().padStart(2, '0');
-            document.getElementById('timer-display').innerText = `${m}:${s}`;
-        }
-
-        // --- STREAMING_CHUNK:Groceries Logic ---
-        function toggleGroceryForm() {
-            const form = document.getElementById('grocery-form');
-            if (form.classList.contains('hidden')) {
-                form.classList.remove('hidden');
-                document.getElementById('g-form-icon').innerText = '❌';
-                document.getElementById('g-form-text').innerText = 'Cancel';
+                document.getElementById('active-timer').classList.add('animate-pulse', 'bg-red-900', 'text-white');
+                document.getElementById('timer-dismiss-btn').classList.remove('hidden');
+                timerAudio.play().catch(e=>console.log("Audio block", e));
             } else {
-                form.classList.add('hidden');
-                document.getElementById('g-form-icon').innerText = '➕';
-                document.getElementById('g-form-text').innerText = 'Add Item';
-                form.reset();
-                editingGroceryId = null;
-                document.getElementById('g-form-title').innerText = 'New Grocery Item';
-                checkCustomCategory();
+                const m = Math.floor(remaining / 60000).toString().padStart(2, '0');
+                const s = Math.floor((remaining % 60000) / 1000).toString().padStart(2, '0');
+                document.getElementById('timer-display').innerText = `${m}:${s}`;
             }
-        }
+        };
 
-        function checkCustomCategory() {
-            const select = document.getElementById('g-cat-select');
-            const custom = document.getElementById('g-cat-custom');
-            if (select.value === 'custom') {
-                custom.classList.remove('hidden'); custom.required = true;
-            } else {
-                custom.classList.add('hidden'); custom.required = false;
-            }
-        }
+        window.dismissTimer = function() {
+            timerAudio.pause();
+            timerAudio.currentTime = 0;
+            document.getElementById('active-timer').classList.remove('flex', 'animate-pulse', 'bg-red-900', 'text-white');
+            document.getElementById('active-timer').classList.add('hidden');
+            document.getElementById('timer-display').innerText = "00:00";
+        };
 
-        document.getElementById('grocery-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const catSelect = document.getElementById('g-cat-select').value;
-            const category = catSelect === 'custom' ? document.getElementById('g-cat-custom').value : catSelect;
-            
-            const newItem = {
-                id: editingGroceryId || Date.now().toString(),
-                name: document.getElementById('g-name').value,
-                category: category,
-                type: document.getElementById('g-type').value,
-                store: document.getElementById('g-store').value,
-                notes: document.getElementById('g-notes').value,
-                stockQty: parseFloat(document.getElementById('g-stock').value) || 0,
-                buyQty: parseFloat(document.getElementById('g-buy-qty').value) || 1,
-                packSize: document.getElementById('g-pack-size').value || '',
-                need: document.getElementById('g-need').checked,
-                lastBought: null
-            };
-
-            if (editingGroceryId) {
-                const idx = state.groceries.findIndex(g => g.id === editingGroceryId);
-                if (idx > -1) {
-                    newItem.lastBought = state.groceries[idx].lastBought;
-                    state.groceries[idx] = newItem;
-                }
-            } else {
-                state.groceries.push(newItem);
-            }
-
-            saveData(); toggleGroceryForm(); renderGroceries(); renderMeals();
-        });
-
-        function editGrocery(id) {
-            const g = state.groceries.find(g => g.id === id);
-            if(!g) return;
-            editingGroceryId = g.id;
-            
-            document.getElementById('g-name').value = g.name;
-            document.getElementById('g-type').value = g.type || '';
-            document.getElementById('g-store').value = g.store || '';
-            document.getElementById('g-notes').value = g.notes || '';
-            document.getElementById('g-stock').value = g.stockQty;
-            
-            // Backwards compatibility for old string-based buyQty
-            let parsedBuyQty = g.buyQty;
-            let parsedPackSize = g.packSize || '';
-            if (typeof g.buyQty === 'string') {
-                const match = String(g.buyQty).match(/\d+/);
-                parsedBuyQty = match ? parseFloat(match[0]) : 1;
-                if(!g.packSize) parsedPackSize = g.buyQty;
-            }
-            document.getElementById('g-buy-qty').value = parsedBuyQty || 1;
-            document.getElementById('g-pack-size').value = parsedPackSize;
-            
-            document.getElementById('g-need').checked = g.need;
-            
-            const select = document.getElementById('g-cat-select');
-            const options = Array.from(select.options).map(o => o.value);
-            if(options.includes(g.category)) {
-                select.value = g.category; document.getElementById('g-cat-custom').classList.add('hidden');
-            } else {
-                select.value = 'custom'; document.getElementById('g-cat-custom').value = g.category; document.getElementById('g-cat-custom').classList.remove('hidden');
-            }
-
-            document.getElementById('g-form-title').innerText = 'Edit Grocery Item';
-            if(document.getElementById('grocery-form').classList.contains('hidden')) toggleGroceryForm();
-            window.scrollTo(0,0);
-        }
-
-        function deleteGrocery(id) {
-            state.groceries = state.groceries.filter(g => g.id !== id);
-            state.meals.forEach(m => { if(m.ingredients) m.ingredients = m.ingredients.filter(iid => iid !== id); });
-            saveData(); renderGroceries(); renderMeals();
-        }
-
-        function handlePickup(id) {
-            const idx = state.groceries.findIndex(g => g.id === id);
-            if (idx > -1) {
-                state.groceries[idx].need = false;
-                state.groceries[idx].lastBought = new Date().toISOString();
-                
-                let buyQ = parseFloat(state.groceries[idx].buyQty) || 1;
-                state.groceries[idx].stockQty = (parseFloat(state.groceries[idx].stockQty) || 0) + buyQ;
-                
-                saveData(); renderGroceries(); renderMeals();
-                triggerConfetti();
-            }
-        }
-
-        function addToList(id) {
-            const idx = state.groceries.findIndex(g => g.id === id);
-            if (idx > -1) { state.groceries[idx].need = true; saveData(); renderGroceries(); renderMeals(); }
-        }
-
-        function removeFromList(id) {
-            const idx = state.groceries.findIndex(g => g.id === id);
-            if (idx > -1) { state.groceries[idx].need = false; saveData(); renderGroceries(); renderMeals(); }
-        }
-
-        function renderGroceries() {
-            const needed = state.groceries.filter(g => g.need);
-            const stocked = state.groceries.filter(g => !g.need);
-            
-            const buildHtml = (items, isNeeded) => items.map(item => {
-                let tagsHtml = `<span class="text-[10px] font-bold px-2 py-1 bg-zinc-800 text-zinc-300 rounded-lg ml-2 uppercase tracking-wide">${item.category}</span>`;
-                if(item.type) tagsHtml += `<span class="text-[10px] font-bold px-2 py-1 bg-black text-zinc-400 border border-zinc-800 rounded-lg ml-2">${item.type}</span>`;
-                
-                const stockAmt = parseFloat(item.stockQty) || 0;
-                let lowStockBadge = '';
-                if(!isNeeded && stockAmt <= 2) {
-                    lowStockBadge = `<span class="text-[11px] font-bold text-red-500 bg-red-950 px-2 py-0.5 rounded border border-red-900 mt-2 block w-max shadow-[0_0_8px_rgba(153,27,27,0.4)]">⚠️ Low Stock (${stockAmt})</span>`;
-                }
-
-                return `
-                <div class="bg-zinc-900 p-4 rounded-2xl shadow-md border ${isNeeded ? 'border-red-900/50 shadow-red-900/10' : 'border-zinc-800'} flex gap-4 items-center transition-all hover:border-zinc-700">
-                    ${isNeeded ? `
-                        <button onclick="handlePickup('${item.id}')" class="w-14 h-14 flex-shrink-0 bg-black text-red-700 rounded-full flex flex-col items-center justify-center hover:bg-zinc-950 hover:text-red-500 hover:border-red-800 font-bold border border-zinc-800 shadow-inner transition-colors text-2xl" title="Mark Picked Up">✓</button>
-                    ` : ''}
-                    <div class="flex-1 min-w-0 py-1">
-                        <div class="flex flex-wrap items-center gap-y-1.5 mb-1.5">
-                            <h4 class="font-extrabold text-zinc-200 text-lg">${item.name}</h4>
-                            ${tagsHtml}
-                        </div>
-                        ${item.notes ? `<p class="text-xs text-zinc-400 truncate mb-2.5 italic bg-black/50 p-1.5 rounded-lg border border-zinc-800/50 inline-block max-w-full">📝 ${item.notes}</p>` : ''}
-                        
-                        <div class="flex flex-wrap gap-2 text-[11px] font-bold text-zinc-400 bg-black p-2 rounded-lg border border-zinc-800 w-fit">
-                            ${item.store ? `<span>🏬 <span class="text-zinc-200">${item.store}</span></span> • ` : ''}
-                            <span>Stock: <span class="text-zinc-200">${item.stockQty}</span></span> • 
-                            <span>Need: <span class="text-zinc-200">${item.buyQty || 1} ${item.packSize ? `(${item.packSize})` : ''}</span></span>
-                        </div>
-                        ${lowStockBadge}
-                        ${!isNeeded && item.lastBought ? `<span class="text-[10px] font-semibold text-zinc-500 mt-2 block uppercase tracking-wider">Last bought: ${formatDate(item.lastBought)}</span>` : ''}
-                    </div>
-                    <div class="flex flex-col gap-2 border-l border-zinc-800 pl-4">
-                        ${!isNeeded ? `<button onclick="addToList('${item.id}')" class="text-xs bg-zinc-800 text-zinc-300 border border-zinc-700 font-bold py-2.5 px-3 rounded-xl hover:bg-zinc-700 hover:text-white transition-colors shadow-sm">Add to List</button>` : ''}
-                        ${isNeeded ? `<button onclick="removeFromList('${item.id}')" class="text-xs text-zinc-500 font-bold hover:text-red-500 transition-colors py-1">Remove</button>` : ''}
-                        <div class="flex justify-center gap-4 mt-2">
-                            <button onclick="editGrocery('${item.id}')" class="text-zinc-500 hover:text-zinc-200 transition-colors text-lg" title="Edit">✏️</button>
-                            <button onclick="deleteGrocery('${item.id}')" class="text-zinc-600 hover:text-red-600 transition-colors text-lg" title="Delete">🗑️</button>
-                        </div>
-                    </div>
-                </div>
-            `}).join('');
-
-            document.getElementById('list-needed').innerHTML = needed.length ? buildHtml(needed, true) : '<p class="text-sm text-zinc-600 italic bg-black p-4 rounded-xl text-center border border-zinc-900">Shopping list is empty.</p>';
-            document.getElementById('list-stocked').innerHTML = stocked.length ? buildHtml(stocked, false) : '<p class="text-sm text-zinc-600 italic">No inventory.</p>';
-        }
-
-        // --- STREAMING_CHUNK:Tasks Logic ---
-        document.getElementById('todo-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const input = document.getElementById('todo-input');
-            if(!input.value) return;
-            state.todos.unshift({
-                id: Date.now().toString(),
-                text: input.value,
-                completed: false,
-                archived: false,
-                history: [`Added ${formatDateTime(new Date().toISOString())}`]
-            });
-            input.value = '';
-            saveData(); renderTodos();
-        });
-
-        function toggleTodoState(id) {
-            const t = state.todos.find(t => t.id === id);
-            if(t) {
-                t.completed = !t.completed;
-                t.history.push(`${t.completed ? 'Completed' : 'Unchecked'} ${formatDateTime(new Date().toISOString())}`);
-                saveData(); renderTodos();
-                if (t.completed) triggerConfetti();
-            }
-        }
-        
-        function archiveTodo(id) {
-            const t = state.todos.find(t => t.id === id);
-            if(t) { t.archived = !t.archived; saveData(); renderTodos(); }
-        }
-
-        function deleteTodo(id) {
-            state.todos = state.todos.filter(t => t.id !== id);
-            saveData(); renderTodos();
-        }
-
-        let showArchive = false;
-        function toggleArchive() {
-            showArchive = !showArchive;
-            document.getElementById('todo-archive').classList.toggle('hidden', !showArchive);
-            document.getElementById('archive-toggle').innerText = showArchive ? "Hide Archive" : "Show Archive";
-        }
-
-        function renderTodos() {
-            const active = state.todos.filter(t => !t.archived);
-            const archived = state.todos.filter(t => t.archived);
-            
-            const buildTodo = (t) => `
-                <div class="bg-zinc-900 p-4 rounded-2xl shadow-sm border border-zinc-800 flex flex-col gap-2 transition-all hover:border-zinc-700">
-                    <div class="flex items-center gap-3">
-                        <button onclick="toggleTodoState('${t.id}')" class="w-7 h-7 rounded-full border-2 flex items-center justify-center transition-colors ${t.completed ? 'bg-red-950 border-red-900 text-red-500' : 'border-zinc-700 bg-black hover:border-zinc-500'}">
-                            ${t.completed ? '✓' : ''}
-                        </button>
-                        <span class="flex-1 font-semibold text-[15px] ${t.completed ? 'line-through text-zinc-600' : 'text-zinc-200'}">${t.text}</span>
-                        <button onclick="archiveTodo('${t.id}')" class="text-xs px-3 py-1.5 bg-black border border-zinc-800 hover:bg-zinc-800 rounded-lg text-zinc-400 font-bold transition-colors">${t.archived ? 'Unarchive' : 'Archive'}</button>
-                        <button onclick="deleteTodo('${t.id}')" class="text-zinc-600 hover:text-red-600 transition-colors p-1">🗑️</button>
-                    </div>
-                    <div class="text-[10px] text-zinc-600 mt-1 pl-10 font-medium">
-                        <span class="font-bold uppercase text-zinc-500 tracking-wider">History:</span> ${t.history.slice(-2).join(' • ')}
-                    </div>
-                </div>
-            `;
-            
-            document.getElementById('todo-list').innerHTML = active.length ? active.map(buildTodo).join('') : '<p class="text-sm text-zinc-600 italic bg-black p-4 rounded-xl text-center border border-zinc-900">No active tasks.</p>';
-            document.getElementById('todo-archive').innerHTML = archived.length ? archived.map(buildTodo).join('') : '<p class="text-sm text-zinc-600 italic">Archive is empty.</p>';
-        }
-
-        // --- STREAMING_CHUNK:Meals Logic ---
-        function toggleMealForm() {
-            const form = document.getElementById('meal-form');
-            if(form.classList.contains('hidden')) {
-                form.classList.remove('hidden');
-                document.getElementById('m-form-icon').innerText = '❌';
-                document.getElementById('m-form-text').innerText = 'Cancel';
-            } else {
-                form.classList.add('hidden');
-                document.getElementById('m-form-icon').innerText = '➕';
-                document.getElementById('m-form-text').innerText = 'Plan Meal';
-                form.reset();
-            }
-        }
-
-        document.getElementById('meal-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const type = document.querySelector('input[name="meal-type"]:checked').value;
-            state.meals.push({
-                id: Date.now().toString(),
-                category: type,
-                name: document.getElementById('m-name').value,
-                date: document.getElementById('m-date').value, 
-                repeatWeeks: parseInt(document.getElementById('m-repeat').value) || 0,
-                ingredients: [] 
-            });
-            saveData(); toggleMealForm(); renderMeals();
-        });
-
-        function addIngredientToMeal(mealId) {
-            const select = document.getElementById(`ing-select-${mealId}`);
-            if(!select || !select.value) return;
-            const meal = state.meals.find(m => m.id === mealId);
-            if(meal && !meal.ingredients.includes(select.value)) {
-                meal.ingredients.push(select.value);
-                saveData(); renderMeals();
-            }
-        }
-        
-        function removeIngredientFromMeal(mealId, ingId) {
-            const meal = state.meals.find(m => m.id === mealId);
-            if(meal) {
-                meal.ingredients = meal.ingredients.filter(id => id !== ingId);
-                saveData(); renderMeals();
-            }
-        }
-
-        function deleteMeal(id) {
-            state.meals = state.meals.filter(m => m.id !== id);
-            saveData(); renderMeals();
-        }
-
-        function getWeekCategory(dateStr) {
-            const d = new Date(dateStr + "T00:00:00");
-            const today = new Date(); today.setHours(0,0,0,0);
-            
-            const currentSunday = new Date(today);
-            currentSunday.setDate(today.getDate() - today.getDay()); 
-            
-            const nextSunday = new Date(currentSunday);
-            nextSunday.setDate(currentSunday.getDate() + 7);
-            
-            const nextNextSunday = new Date(nextSunday);
-            nextNextSunday.setDate(nextSunday.getDate() + 7);
-
-            if (d < nextSunday) return "Current Week (Active)";
-            if (d >= nextSunday && d < nextNextSunday) return "Next Week";
-            return "Future Weeks";
-        }
-
-        function renderMeals() {
-            const renderCategoryList = (mealCategory, containerId) => {
-                const groups = { "Current Week (Active)": [], "Next Week": [], "Future Weeks": [] };
-                const filteredMeals = state.meals.filter(m => m.category === mealCategory);
-                filteredMeals.sort((a,b) => new Date(a.date) - new Date(b.date)).forEach(m => { groups[getWeekCategory(m.date)].push(m); });
-
-                let html = '';
-                const gOptions = state.groceries.map(g => `<option value="${g.id}">${g.name} (Stock: ${g.stockQty})</option>`).join('');
-
-                for (const [groupName, meals] of Object.entries(groups)) {
-                    if(meals.length === 0) continue;
-                    html += `<div><h4 class="font-extrabold text-zinc-500 uppercase tracking-widest text-[11px] mb-3 border-b border-zinc-800 pb-2 pl-1">${groupName}</h4><div class="space-y-4 mb-6">`;
-                    
-                    meals.forEach(meal => {
-                        let ingredientsHtml = '';
-                        if(meal.ingredients && meal.ingredients.length > 0) {
-                            ingredientsHtml = meal.ingredients.map(ingId => {
-                                const g = state.groceries.find(x => x.id === ingId);
-                                if(!g) return '';
-                                
-                                let statusBadge = ""; let actionBtn = "";
-                                const stockAmt = parseFloat(g.stockQty) || 0;
-
-                                if (g.need) {
-                                    statusBadge = `<span class="text-[9px] font-bold px-2 py-1 bg-red-950 text-red-500 rounded-md border border-red-900 shadow-[0_0_5px_rgba(153,27,27,0.5)]">On Shopping List</span>`;
-                                    actionBtn = `<button type="button" onclick="removeFromList('${g.id}')" class="text-[10px] text-red-500 font-bold hover:text-red-400 bg-black px-2 py-1 rounded border border-zinc-700 transition-colors">Remove from Cart</button>`;
-                                } else if (stockAmt <= 2) {
-                                    statusBadge = `<span class="text-[9px] font-bold px-2 py-1 bg-orange-950 text-orange-500 rounded-md border border-orange-900">Low Stock (${stockAmt})</span>`;
-                                    actionBtn = `<button type="button" onclick="addToList('${g.id}')" class="text-[10px] text-zinc-400 font-bold hover:text-white bg-black px-2 py-1 rounded border border-zinc-700 transition-colors">Add to Cart</button>`;
-                                } else {
-                                    statusBadge = `<span class="text-[9px] font-bold px-2 py-1 bg-zinc-800 text-zinc-400 rounded-md border border-zinc-700">In Stock (${stockAmt})</span>`;
-                                    actionBtn = `<button type="button" onclick="addToList('${g.id}')" class="text-[10px] text-zinc-400 font-bold hover:text-white bg-black px-2 py-1 rounded border border-zinc-700 transition-colors">Add to Cart</button>`;
-                                }
-
-                                return `
-                                    <div class="flex items-center justify-between py-2 border-b border-zinc-800/50 last:border-0 group">
-                                        <div class="flex items-center gap-2">
-                                            <button onclick="removeIngredientFromMeal('${meal.id}', '${g.id}')" class="text-[10px] text-zinc-600 hover:text-red-500 transition-colors px-1" title="Unlink from meal">❌</button>
-                                            <span class="text-xs font-bold text-zinc-300 group-hover:text-white transition-colors">${g.name}</span>
-                                        </div>
-                                        <div class="flex items-center gap-2">${statusBadge}${actionBtn}</div>
-                                    </div>
-                                `;
-                            }).join('');
-                        } else {
-                            ingredientsHtml = '<p class="text-[11px] text-zinc-600 italic py-1">No ingredients linked yet.</p>';
-                        }
-
-                        html += `
-                            <div class="bg-zinc-900 p-5 rounded-3xl shadow-md border border-zinc-800 relative transition-all hover:border-zinc-700">
-                                <button onclick="deleteMeal('${meal.id}')" class="absolute top-4 right-4 text-zinc-600 hover:text-red-600 transition-colors">🗑️</button>
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-[10px] font-bold text-zinc-400 bg-black border border-zinc-800 px-2 py-1 rounded-md tracking-wide">Starts: ${formatDate(meal.date)}</span>
-                                    ${meal.repeatWeeks > 0 ? `<span class="text-[10px] font-bold text-red-400 bg-red-950/50 border border-red-900/50 px-2 py-1 rounded-md uppercase tracking-wider">Repeats ${meal.repeatWeeks}w</span>` : ''}
-                                </div>
-                                <h4 class="font-extrabold text-xl text-zinc-100 mb-3">${meal.name}</h4>
-                                
-                                <div class="bg-black rounded-2xl p-4 border border-zinc-800 mt-3 shadow-inner">
-                                    <h5 class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2 border-b border-zinc-800 pb-2">Linked Groceries</h5>
-                                    ${ingredientsHtml}
-                                    <div class="flex gap-2 mt-4 pt-3 border-t border-zinc-800">
-                                        <select id="ing-select-${meal.id}" class="flex-1 text-xs p-2.5 rounded-xl border border-zinc-700 bg-zinc-950 text-zinc-300 font-semibold outline-none focus:border-red-900">
-                                            <option value="">Select from inventory...</option>${gOptions}
-                                        </select>
-                                        <button type="button" onclick="addIngredientToMeal('${meal.id}')" class="bg-zinc-800 text-zinc-200 border border-zinc-700 px-4 py-2 rounded-xl text-xs font-bold hover:bg-zinc-700 hover:text-white transition-colors">Add</button>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    });
-                    html += `</div></div>`;
-                }
-                document.getElementById(containerId).innerHTML = html || '<p class="text-sm text-zinc-600 italic bg-black p-5 rounded-2xl text-center border border-zinc-900">None scheduled.</p>';
-            };
-
-            renderCategoryList('prep', 'meals-list-prep');
-            renderCategoryList('dinner', 'meals-list-dinner');
-        }
-
-        // --- STREAMING_CHUNK:Chores Logic ---
-        function toggleChoreSettings() {
-            const el = document.getElementById('chore-settings');
-            if(el.classList.contains('hidden')) {
-                document.getElementById('set-change-weeks').value = state.chores.changeWeeks || 2;
-                document.getElementById('set-buy-weeks').value = state.chores.buyWeeks || 4;
-                document.getElementById('set-claws-weeks').value = state.chores.clawsWeeks || 3;
-                document.getElementById('set-brush-weeks').value = state.chores.brushWeeks || 1;
-                document.getElementById('set-food-weeks').value = state.chores.foodWeeks || 4;
-                el.classList.remove('hidden');
-            } else el.classList.add('hidden');
-        }
-        
-        function saveChoreSettings() {
-            state.chores.changeWeeks = parseInt(document.getElementById('set-change-weeks').value) || 2;
-            state.chores.buyWeeks = parseInt(document.getElementById('set-buy-weeks').value) || 4;
-            state.chores.clawsWeeks = parseInt(document.getElementById('set-claws-weeks').value) || 3;
-            state.chores.brushWeeks = parseInt(document.getElementById('set-brush-weeks').value) || 1;
-            state.chores.foodWeeks = parseInt(document.getElementById('set-food-weeks').value) || 4;
-            saveData(); toggleChoreSettings(); renderChores(); showToast("Settings Saved");
-        }
-
-        function updateLitter(type) {
-            const now = new Date().toISOString();
-            if (type === 'changed') state.chores.litterChanged = now;
-            else if (type === 'bought') state.chores.litterBought = now;
-            else if (type === 'claws') state.chores.clawsClipped = now;
-            else if (type === 'brush') state.chores.brushed = now;
-            saveData(); renderChores(); 
-            triggerConfetti();
-        }
-
-        function toggleFoodForm() {
-            const f = document.getElementById('food-log-form');
-            if(f.classList.contains('hidden')) { f.classList.remove('hidden'); f.reset(); }
-            else f.classList.add('hidden');
-        }
-
-        function logFood(e) {
-            e.preventDefault();
-            const brand = document.getElementById('food-brand').value;
-            const flavor = document.getElementById('food-flavor').value;
-            if (brand && flavor) {
-                const now = new Date().toISOString();
-                state.chores.foodBought = now;
-                state.chores.foodArchive.unshift({ id: Date.now().toString(), date: now, brand: brand.trim(), flavor: flavor.trim() });
-                saveData(); toggleFoodForm(); renderChores();
-                triggerConfetti();
-            }
-        }
-
-        function deleteFoodRecord(id) {
-            state.chores.foodArchive = state.chores.foodArchive.filter(f => f.id !== id);
-            saveData(); renderChores();
-        }
-
-        function renderChores() {
-            const buildCard = (title, type, lastIso, weeks) => `
-                <div class="bg-black border border-zinc-800 p-4 rounded-2xl flex flex-col items-center justify-between text-center relative group">
-                    <button onclick="updateLitter('${type}')" class="absolute top-2 right-2 text-zinc-600 hover:text-purple-500 font-bold transition-colors text-xs bg-zinc-900 w-6 h-6 rounded-full flex items-center justify-center opacity-50 group-hover:opacity-100" title="Mark Done">✓</button>
-                    <span class="font-extrabold text-zinc-200 text-sm mb-2 mt-1 leading-tight">${title}</span>
-                    <div class="w-full bg-zinc-950 rounded-xl p-2 border border-zinc-800/50">
-                        <div class="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-0.5">Next Due</div>
-                        <div class="font-extrabold text-sm mb-1">${addDays(lastIso, weeks * 7)}</div>
-                        <div class="text-[9px] text-zinc-600 border-t border-zinc-800 pt-1 mt-1">Last: ${formatDate(lastIso)}</div>
-                    </div>
-                </div>
-            `;
-            
-            const buildFoodCard = (lastIso, weeks) => `
-                <div class="bg-black border border-zinc-800 p-4 rounded-2xl flex flex-col items-center justify-between text-center relative group">
-                    <button onclick="toggleFoodForm()" class="absolute top-2 right-2 text-zinc-600 hover:text-orange-500 font-bold transition-colors text-xs bg-zinc-900 w-6 h-6 rounded-full flex items-center justify-center opacity-50 group-hover:opacity-100" title="Log Food">➕</button>
-                    <span class="font-extrabold text-zinc-200 text-sm mb-2 mt-1 leading-tight text-orange-100">Bought Food</span>
-                    <div class="w-full bg-zinc-950 rounded-xl p-2 border border-zinc-800/50">
-                        <div class="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-0.5">Next Due</div>
-                        <div class="font-extrabold text-sm mb-1">${addDays(lastIso, weeks * 7)}</div>
-                        <div class="text-[9px] text-zinc-600 border-t border-zinc-800 pt-1 mt-1">Last: ${formatDate(lastIso)}</div>
-                    </div>
-                </div>
-            `;
-
-            let gridHtml = buildCard('Fully Changed Litter', 'changed', state.chores.litterChanged, state.chores.changeWeeks || 2);
-            gridHtml += buildCard('Bought New Litter', 'bought', state.chores.litterBought, state.chores.buyWeeks || 4);
-            gridHtml += buildCard('Clipped Claws', 'claws', state.chores.clawsClipped, state.chores.clawsWeeks || 3);
-            gridHtml += buildCard('Brushed Coat', 'brush', state.chores.brushed, state.chores.brushWeeks || 1);
-            gridHtml += buildFoodCard(state.chores.foodBought, state.chores.foodWeeks || 4);
-            
-            document.getElementById('cat-task-grid').innerHTML = gridHtml;
-
-            const archiveHtml = state.chores.foodArchive.map(f => `
-                <div class="flex justify-between items-center bg-black p-3.5 rounded-xl border border-zinc-800 mb-2 transition-colors hover:border-zinc-700">
-                    <div>
-                        <div class="text-[10px] text-zinc-500 font-bold mb-0.5">${formatDate(f.date)}</div>
-                        <div class="text-sm font-extrabold text-zinc-200 capitalize">${f.brand} <span class="text-zinc-500 mx-1">•</span> <span class="text-orange-200 font-semibold">${f.flavor}</span></div>
-                    </div>
-                    <button onclick="deleteFoodRecord('${f.id}')" class="text-zinc-600 hover:text-red-500 transition-colors p-2">🗑️</button>
-                </div>
-            `).join('');
-            document.getElementById('food-archive-list').innerHTML = archiveHtml || '<p class="text-xs text-zinc-600 italic p-2">No food logged yet.</p>';
-        }
-
-        // --- STREAMING_CHUNK:Health & Fitness Logic ---
-        function calcWaterGoal(weight, activity, climate) {
-            let oz = (parseFloat(weight) || 0) * 0.5;
-            if (activity === 'light') oz += 12;
-            if (activity === 'moderate') oz += 24;
-            if (activity === 'active') oz += 36;
-            if (activity === 'very') oz += 48;
-            if (climate === 'hot') oz += 16;
-            return Math.round(oz);
-        }
-
-        function toggleHealthProfileForm() {
-            const form = document.getElementById('health-profile-form');
-            if(form.classList.contains('hidden')) { 
-                form.classList.remove('hidden'); 
-                form.reset(); 
-                editingProfileId = null;
-                document.getElementById('hp-form-title').innerText = "Setup Health Profile";
-                document.getElementById('hp-delete-btn').classList.add('hidden');
-            } 
-            else { form.classList.add('hidden'); }
-        }
-
-        function editHealthProfile() {
-            if(!activeProfileId) return;
-            const p = state.health.profiles.find(x => x.id === activeProfileId);
-            if(!p) return;
-            
-            editingProfileId = p.id;
-            document.getElementById('hp-name').value = p.name || '';
-            document.getElementById('hp-weight').value = p.weight || '';
-            document.getElementById('hp-height').value = p.height || '';
-            document.getElementById('hp-age').value = p.age || '';
-            document.getElementById('hp-gender').value = p.gender || 'Male';
-            document.getElementById('hp-activity').value = p.activity || 'sedentary';
-            document.getElementById('hp-climate').value = p.climate || 'temperate';
-            
-            document.getElementById('hp-form-title').innerText = "Edit Health Profile";
-            document.getElementById('hp-delete-btn').classList.remove('hidden');
-            
-            document.getElementById('health-profile-form').classList.remove('hidden');
-        }
-
-        function deleteHealthProfile() {
-            if(!editingProfileId) return;
-            state.health.profiles = state.health.profiles.filter(p => p.id !== editingProfileId);
-            state.health.waterLogs = state.health.waterLogs.filter(w => w.profileId !== editingProfileId);
-            state.health.workoutLogs = state.health.workoutLogs.filter(w => w.profileId !== editingProfileId);
-            activeProfileId = null;
-            saveData(); 
-            document.getElementById('health-profile-form').classList.add('hidden');
-            renderHealth(); 
-            showToast("Profile Deleted");
-        }
-
-        document.getElementById('health-profile-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const w = document.getElementById('hp-weight').value;
-            const act = document.getElementById('hp-activity').value;
-            const clim = document.getElementById('hp-climate').value;
-            
-            const profileData = {
-                id: editingProfileId || Date.now().toString(),
-                name: document.getElementById('hp-name').value,
-                weight: w,
-                height: document.getElementById('hp-height').value,
-                age: document.getElementById('hp-age').value,
-                gender: document.getElementById('hp-gender').value,
-                activity: act, climate: clim,
-                dailyWaterGoal: calcWaterGoal(w, act, clim)
-            };
-            
-            if (editingProfileId) {
-                const idx = state.health.profiles.findIndex(p => p.id === editingProfileId);
-                if(idx > -1) state.health.profiles[idx] = profileData;
-                showToast("Profile Updated");
-            } else {
-                state.health.profiles.push(profileData);
-                activeProfileId = profileData.id;
-                showToast("Profile Created");
-            }
-            
-            saveData(); document.getElementById('health-profile-form').classList.add('hidden'); renderHealth(); 
-        });
-
-        function switchHealthProfile() {
-            activeProfileId = document.getElementById('health-profile-select').value;
-            renderHealth();
-        }
-
-        function logWater(oz) {
-            if(!activeProfileId) return;
-            state.health.waterLogs.push({ id: Date.now().toString(), profileId: activeProfileId, date: new Date().toISOString(), amount: oz });
-            saveData(); renderHealth(); 
-            triggerConfetti();
-        }
-
-        function promptCustomWater() {
-            if(!activeProfileId) return;
-            const amt = prompt("Enter amount in oz:");
-            const oz = parseFloat(amt);
-            if(oz && oz > 0) logWater(oz);
-        }
-
-        function toggleWorkoutForm() {
-            const f = document.getElementById('workout-form');
-            if(f.classList.contains('hidden')) { f.classList.remove('hidden'); f.reset(); }
-            else f.classList.add('hidden');
-        }
-
-        document.getElementById('workout-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            if(!activeProfileId) return;
-            state.health.workoutLogs.push({
-                id: Date.now().toString(),
-                profileId: activeProfileId,
-                date: new Date().toISOString(),
-                type: document.getElementById('wo-type').value,
-                duration: parseInt(document.getElementById('wo-duration').value) || 0,
-                sets: document.getElementById('wo-sets').value,
-                reps: document.getElementById('wo-reps').value,
-                dist: document.getElementById('wo-dist').value,
-                unit: document.getElementById('wo-unit').value,
-                intensity: document.getElementById('wo-intensity').value,
-                notes: document.getElementById('wo-notes').value
-            });
-            saveData(); toggleWorkoutForm(); renderHealth(); 
-            triggerConfetti();
-        });
-        
-        function deleteWorkout(id) {
-            state.health.workoutLogs = state.health.workoutLogs.filter(w => w.id !== id);
-            saveData(); renderHealth();
-        }
-
-        function renderHealth() {
-            const select = document.getElementById('health-profile-select');
-            select.innerHTML = '<option value="" class="bg-zinc-900 text-zinc-100">Select a Profile...</option>' + state.health.profiles.map(p => `<option value="${p.id}" class="bg-zinc-900 text-zinc-100" ${p.id === activeProfileId ? 'selected' : ''}>${p.name}</option>`).join('');
-            
-            const editBtn = document.getElementById('hp-edit-btn');
-            const dash = document.getElementById('health-dashboard');
-            if(!activeProfileId) { 
-                dash.classList.add('hidden'); 
-                editBtn.classList.add('hidden');
-                return; 
-            }
-            dash.classList.remove('hidden');
-            editBtn.classList.remove('hidden');
-
-            const profile = state.health.profiles.find(p => p.id === activeProfileId);
-            document.getElementById('water-goal-display').innerText = profile.dailyWaterGoal;
-
-            const todayStr = new Date().toLocaleDateString('en-US', TZ_OPTS);
-            const todaysWater = state.health.waterLogs
-                .filter(w => w.profileId === activeProfileId && new Date(w.date).toLocaleDateString('en-US', TZ_OPTS) === todayStr)
-                .reduce((sum, w) => sum + w.amount, 0);
-            
-            document.getElementById('water-today-display').innerText = todaysWater;
-            
-            let pct = (todaysWater / profile.dailyWaterGoal) * 100;
-            if(pct > 100) pct = 100;
-            document.getElementById('water-progress-bar').style.width = `${pct}%`;
-
-            const recentWO = state.health.workoutLogs
-                .filter(w => w.profileId === activeProfileId)
-                .sort((a,b) => new Date(b.date) - new Date(a.date))
-                .slice(0, 5);
-                
-            document.getElementById('workout-list').innerHTML = recentWO.length ? recentWO.map(w => {
-                let details = [];
-                if(w.sets && w.reps) details.push(`${w.sets} Sets × ${w.reps} Reps`);
-                else if (w.sets) details.push(`${w.sets} Sets`);
-                else if (w.reps) details.push(`${w.reps} Reps`);
-                if(w.dist) details.push(`${w.dist} ${w.unit || ''}`.trim());
-                
-                let detailsStr = details.length > 0 ? `<div class="text-[11px] font-bold text-zinc-400 bg-zinc-950 px-2 py-1 rounded-md mt-1.5 w-fit border border-zinc-800">${details.join(' • ')}</div>` : '';
-
-                return `
-                <div class="bg-black p-4 rounded-2xl border border-zinc-800 flex justify-between items-start transition-all hover:border-zinc-700">
-                    <div class="flex-1 pr-4">
-                        <div class="flex items-center gap-2 mb-1">
-                            <span class="text-sm font-extrabold text-emerald-400 capitalize">${w.type}</span>
-                            <span class="text-[9px] font-bold bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded uppercase tracking-wider">${w.intensity}</span>
-                        </div>
-                        <div class="text-[10px] text-zinc-500 font-bold">${formatDateTime(w.date)} • ${w.duration} mins</div>
-                        ${detailsStr}
-                        ${w.notes ? `<div class="text-xs text-zinc-400 italic mt-2 bg-zinc-900/50 p-2 rounded-lg inline-block border border-zinc-800/50">"${w.notes}"</div>` : ''}
-                    </div>
-                    <button onclick="deleteWorkout('${w.id}')" class="text-zinc-600 hover:text-red-500 transition-colors p-2 shrink-0">🗑️</button>
-                </div>
-            `}).join('') : '<p class="text-xs text-zinc-600 italic bg-black p-4 rounded-xl text-center border border-zinc-800">No workouts logged yet.</p>';
-
-            const bars = [];
-            const labels = [];
-            for(let i=6; i>=0; i--) {
-                const d = new Date(); d.setDate(d.getDate() - i);
-                const dStr = d.toLocaleDateString('en-US', TZ_OPTS);
-                
-                const wtr = state.health.waterLogs.filter(w => w.profileId === activeProfileId && new Date(w.date).toLocaleDateString('en-US', TZ_OPTS) === dStr).reduce((s, w) => s + w.amount, 0);
-                const wo = state.health.workoutLogs.filter(w => w.profileId === activeProfileId && new Date(w.date).toLocaleDateString('en-US', TZ_OPTS) === dStr).reduce((s, w) => s + w.duration, 0);
-                
-                let wtrH = (wtr / profile.dailyWaterGoal) * 100; if(wtrH>100) wtrH=100;
-                let woH = (wo / 60) * 100; if(woH>100) woH=100;
-
-                bars.push(`
-                    <div class="flex-1 flex flex-col justify-end items-center gap-1 h-full relative group">
-                        <div class="w-full flex justify-center gap-[2px] h-full items-end relative">
-                            <div class="w-1/2 bg-cyan-800/80 rounded-t-sm hover:bg-cyan-500 transition-colors relative" style="height: ${wtrH}%">
-                                <span class="absolute -top-7 left-1/2 -translate-x-1/2 bg-black text-cyan-300 text-[10px] font-bold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 z-20 pointer-events-none shadow-md border border-cyan-900/50">${wtr}</span>
-                            </div>
-                            <div class="w-1/2 bg-emerald-800/80 rounded-t-sm hover:bg-emerald-500 transition-colors relative" style="height: ${woH}%">
-                                <span class="absolute -top-7 left-1/2 -translate-x-1/2 bg-black text-emerald-300 text-[10px] font-bold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 z-20 pointer-events-none shadow-md border border-emerald-900/50">${wo}</span>
-                            </div>
-                        </div>
-                    </div>
-                `);
-                labels.push(`<span class="flex-1 text-center truncate">${d.toLocaleDateString('en-US', {weekday:'short', ...TZ_OPTS})}</span>`);
-            }
-            document.getElementById('health-graph-bars').innerHTML = bars.join('');
-            document.getElementById('health-graph-labels').innerHTML = labels.join('');
-        }
-
-        // --- Global Initialization ---
-        function renderAll() {
-            renderGroceries();
-            renderTodos();
-            renderMeals();
-            renderChores();
-            renderHealth();
-        }
+        // Init
+        window.onload = function() {
+            renderAll();
+        };
     </script>
 </body>
 </html>
